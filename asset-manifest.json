@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.5607b53d.css",
-    "main.js": "/static/js/main.8431922f.js",
-    "static/media/googlelogo.svg": "/static/media/googlelogo.155ac00fa274fa0e3eb95aef501fb1f1.svg",
-    "index.html": "/index.html",
-    "main.5607b53d.css.map": "/static/css/main.5607b53d.css.map",
-    "main.8431922f.js.map": "/static/js/main.8431922f.js.map"
+    "main.css": "/fastpartybox-inventory/static/css/main.5607b53d.css",
+    "main.js": "/fastpartybox-inventory/static/js/main.988e38c3.js",
+    "index.html": "/fastpartybox-inventory/index.html",
+    "static/media/googlelogo.svg": "/fastpartybox-inventory/static/media/googlelogo.155ac00fa274fa0e3eb95aef501fb1f1.svg",
+    "main.5607b53d.css.map": "/fastpartybox-inventory/static/css/main.5607b53d.css.map",
+    "main.988e38c3.js.map": "/fastpartybox-inventory/static/js/main.988e38c3.js.map"
   },
   "entrypoints": [
     "static/css/main.5607b53d.css",
-    "static/js/main.8431922f.js"
+    "static/js/main.988e38c3.js"
   ]
 }
