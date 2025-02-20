@@ -67,8 +67,7 @@ export class SubscriptionService {
           return productCount < limits.maxProducts;
           
         case 'orders':
-          const orderCount = userDoc.data()?.orderCount || 0;
-          return orderCount < limits.maxOrders;
+          return true; // Always allow orders
           
         default:
           return false;

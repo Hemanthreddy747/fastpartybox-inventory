@@ -351,22 +351,7 @@ const Billing = () => {
   };
 
   const checkOrderLimit = async () => {
-    try {
-      const canCreateOrder = await SubscriptionService.checkLimit(
-        userUID,
-        "orders"
-      );
-      if (!canCreateOrder) {
-        notifyError(
-          "You've reached your monthly order limit. Please upgrade your subscription."
-        );
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Error checking order limit:", error);
-      return true; // Allow order in case of error checking limits
-    }
+    return true; // Always allow orders
   };
 
   const handleCheckout = async () => {
