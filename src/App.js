@@ -13,8 +13,9 @@ import Wholesale from "./pages/wholesale";
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/">
         <Routes>
+          <Route exact path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={
             <PrivateRoute>
@@ -58,9 +59,7 @@ function App() {
               </PrivateRoute>
             }
           />
-
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
