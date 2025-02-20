@@ -1,6 +1,6 @@
 {
-  "short_name": "FastPartyBox",
-  "name": "FastPartyBox Inventory Management",
+  "short_name": "BillingSelling",
+  "name": "BillingSelling.com - Fast Billing & Inventory",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#3498db",
   "background_color": "#ffffff"
 }

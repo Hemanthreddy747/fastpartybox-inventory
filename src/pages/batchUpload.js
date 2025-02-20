@@ -410,15 +410,15 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
           )}
 
           <div className="d-flex justify-content-between">
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? "Uploading..." : "Upload"}
-            </Button>
             <Button
               variant="secondary"
               onClick={handleDownloadProducts}
               disabled={loading}
             >
               Download Template
+            </Button>
+            <Button variant="primary" type="submit" disabled={loading}>
+              {loading ? "Uploading..." : "Upload"}
             </Button>
           </div>
         </Form>

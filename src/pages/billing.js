@@ -11,12 +11,39 @@ import {
   writeBatch,
   doc,
   increment,
+  getDoc,
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./billing.css";
 import LoaderC from "../utills/loaderC";
+import { SubscriptionService } from "../services/subscriptionService";
+
+// Create a simple error boundary component
+const BillingErrorBoundary = ({ children }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="error-container">
+        <h2>Something went wrong.</h2>
+        <Button variant="primary" onClick={() => window.location.reload()}>
+          Reload Page
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div onError={(error) => {
+      console.error("Billing Error:", error);
+      setHasError(true);
+    }}>
+      {children}
+    </div>
+  );
+};
 
 const Billing = () => {
   const [products, setProducts] = useState([]);
@@ -34,15 +61,15 @@ const Billing = () => {
     email: "",
     address: "",
   });
-  const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'pending', 'error'
+  const [syncStatus, setSyncStatus] = useState("synced"); // 'synced', 'pending', 'error'
   const [pendingOrders, setPendingOrders] = useState([]);
 
   // Load pending orders from localStorage on component mount
   useEffect(() => {
-    const stored = localStorage.getItem('pendingOrders');
+    const stored = localStorage.getItem("pendingOrders");
     if (stored) {
       setPendingOrders(JSON.parse(stored));
-      setSyncStatus('pending');
+      setSyncStatus("pending");
     }
   }, []);
 
@@ -50,23 +77,23 @@ const Billing = () => {
   const syncPendingOrders = async () => {
     if (!navigator.onLine || !userUID) return;
 
-    const stored = localStorage.getItem('pendingOrders');
+    const stored = localStorage.getItem("pendingOrders");
     if (!stored) return;
 
     const orders = JSON.parse(stored);
     if (orders.length === 0) return;
 
-    setSyncStatus('pending');
+    setSyncStatus("pending");
 
     for (const order of orders) {
       try {
         const batch = writeBatch(db);
-        
+
         // Create order document
         const orderRef = doc(collection(db, "users", userUID, "orders"));
         batch.set(orderRef, {
           ...order,
-          syncedAt: serverTimestamp()
+          syncedAt: serverTimestamp(),
         });
 
         // Update product quantities
@@ -78,22 +105,27 @@ const Billing = () => {
         });
 
         await batch.commit();
-        
+
         // Remove synced order from pending list
-        setPendingOrders(prev => prev.filter(o => o.localId !== order.localId));
-        localStorage.setItem('pendingOrders', JSON.stringify(
-          pendingOrders.filter(o => o.localId !== order.localId)
-        ));
-        
+        setPendingOrders((prev) =>
+          prev.filter((o) => o.localId !== order.localId)
+        );
+        localStorage.setItem(
+          "pendingOrders",
+          JSON.stringify(
+            pendingOrders.filter((o) => o.localId !== order.localId)
+          )
+        );
+
         notifySuccess(`Order ${order.localId} synced successfully`);
       } catch (error) {
         console.error("Error syncing order:", error);
-        setSyncStatus('error');
+        setSyncStatus("error");
       }
     }
 
     if (pendingOrders.length === 0) {
-      setSyncStatus('synced');
+      setSyncStatus("synced");
     }
   };
 
@@ -103,8 +135,8 @@ const Billing = () => {
       syncPendingOrders();
     };
 
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
   }, [userUID, pendingOrders]);
 
   const notifySuccess = (message) => toast.success(message);
@@ -127,7 +159,7 @@ const Billing = () => {
       const imagesRef = collection(db, "users", uid, "productImages");
       const imagesSnapshot = await getDocs(imagesRef);
       const imageMap = {};
-      
+
       // Create a map of productId to image data
       imagesSnapshot.docs.forEach((doc) => {
         const imageData = doc.data();
@@ -140,9 +172,9 @@ const Billing = () => {
       localStorage.setItem("productImages", JSON.stringify(imageMap));
 
       // Attach images to products
-      productsList = productsList.map(product => ({
+      productsList = productsList.map((product) => ({
         ...product,
-        productImage: product.productId ? imageMap[product.productId] : null
+        productImage: product.productId ? imageMap[product.productId] : null,
       }));
 
       setProducts(productsList);
@@ -164,6 +196,48 @@ const Billing = () => {
     });
     return () => unsubscribe();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    // Load cart from localStorage
+    const savedCart = localStorage.getItem("currentCart");
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        setCart(parsedCart);
+      } catch (error) {
+        console.error("Error loading saved cart:", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Update localStorage whenever cart changes
+    try {
+      // First try to store with full data
+      localStorage.setItem("currentCart", JSON.stringify(cart));
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        try {
+          // If quota exceeded, try storing without product images
+          const compressedCart = cart.map(item => {
+            const { productImage, ...rest } = item;
+            return rest;
+          });
+          localStorage.setItem("currentCart", JSON.stringify(compressedCart));
+          console.warn('Stored cart without images due to storage limitations');
+        } catch (innerError) {
+          // If still failing, clear some space
+          try {
+            localStorage.removeItem("productImages"); // Remove cached images
+            localStorage.setItem("currentCart", JSON.stringify(cart));
+          } catch (finalError) {
+            console.error('Failed to store cart in localStorage:', finalError);
+            toast.warning('Unable to save cart locally due to storage limitations');
+          }
+        }
+      }
+    }
+  }, [cart]);
 
   const addToCart = useCallback((product) => {
     // Check if product has zero or negative stock
@@ -239,14 +313,79 @@ const Billing = () => {
     [cart]
   );
 
+  const reserveStock = async (items) => {
+    if (!navigator.onLine) return true; // Skip reservation in offline mode
+
+    const batch = writeBatch(db);
+    const reservations = [];
+
+    try {
+      for (const item of items) {
+        const productRef = doc(db, "users", userUID, "products", item.id);
+        const productSnap = await getDoc(productRef);
+        const currentStock = productSnap.data().stockQty;
+
+        if (currentStock < item.quantity) {
+          throw new Error(`Insufficient stock for ${item.productName}`);
+        }
+
+        batch.update(productRef, {
+          stockQty: increment(-item.quantity),
+          reservedQty: increment(item.quantity),
+        });
+
+        reservations.push({
+          productId: item.id,
+          quantity: item.quantity,
+          timestamp: Date.now(),
+        });
+      }
+
+      await batch.commit();
+      return true;
+    } catch (error) {
+      console.error("Stock reservation failed:", error);
+      notifyError(error.message);
+      return false;
+    }
+  };
+
+  const checkOrderLimit = async () => {
+    try {
+      const canCreateOrder = await SubscriptionService.checkLimit(
+        userUID,
+        "orders"
+      );
+      if (!canCreateOrder) {
+        notifyError(
+          "You've reached your monthly order limit. Please upgrade your subscription."
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking order limit:", error);
+      return true; // Allow order in case of error checking limits
+    }
+  };
+
   const handleCheckout = async () => {
     if (!customerInfo.name || !customerInfo.phone) {
       notifyError("Please fill in customer name and phone number");
       return;
     }
 
+    const canProceed = await checkOrderLimit();
+    if (!canProceed) return;
+
     setProcessingCheckout(true);
     try {
+      // Attempt to reserve stock
+      const stockReserved = await reserveStock(cart);
+      if (!stockReserved && navigator.onLine) {
+        throw new Error("Failed to reserve stock");
+      }
+
       // Prepare order data
       const cleanedCartItems = cart.map((item) => {
         const { productImage, ...cleanedItem } = item;
@@ -260,21 +399,24 @@ const Billing = () => {
         total: calculateTotal(),
         timestamp: new Date().toISOString(),
         status: "pending",
-        createdOffline: !navigator.onLine
+        createdOffline: !navigator.onLine,
       };
 
       // Store in pending orders
       const updatedPendingOrders = [...pendingOrders, orderData];
       setPendingOrders(updatedPendingOrders);
-      localStorage.setItem('pendingOrders', JSON.stringify(updatedPendingOrders));
+      localStorage.setItem(
+        "pendingOrders",
+        JSON.stringify(updatedPendingOrders)
+      );
 
       // Update local product quantities
-      const updatedProducts = products.map(product => {
-        const cartItem = cart.find(item => item.id === product.id);
+      const updatedProducts = products.map((product) => {
+        const cartItem = cart.find((item) => item.id === product.id);
         if (cartItem) {
           return {
             ...product,
-            stockQty: product.stockQty - cartItem.quantity
+            stockQty: product.stockQty - cartItem.quantity,
           };
         }
         return product;
@@ -285,7 +427,7 @@ const Billing = () => {
       if (navigator.onLine) {
         syncPendingOrders();
       } else {
-        setSyncStatus('pending');
+        setSyncStatus("pending");
         notifySuccess("Order saved offline. Will sync when online.");
       }
 
@@ -313,10 +455,10 @@ const Billing = () => {
       )
       .sort((a, b) => {
         // First, sort by stock status (in stock products first)
-        if ((a.stockQty <= 0) !== (b.stockQty <= 0)) {
+        if (a.stockQty <= 0 !== b.stockQty <= 0) {
           return a.stockQty <= 0 ? 1 : -1;
         }
-        
+
         // Then apply the selected sort option
         switch (sortOption) {
           case "name":
@@ -330,8 +472,21 @@ const Billing = () => {
       });
   }, [products, searchTerm, sortOption]);
 
+  const handleCartRecovery = () => {
+    const savedCart = localStorage.getItem("currentCart");
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        setCart(parsedCart);
+        notifySuccess("Cart recovered successfully");
+      } catch (error) {
+        notifyError("Failed to recover cart");
+      }
+    }
+  };
+
   return (
-    <>
+    <BillingErrorBoundary>
       {loading && <LoaderC />}
       <ToastContainer />
       <div className="billing-container">
@@ -557,23 +712,17 @@ const Billing = () => {
         </Modal.Footer>
       </Modal>
       <div className="sync-status-indicator">
-        {syncStatus === 'pending' && (
+        {syncStatus === "pending" && (
           <span className="text-warning">
-            ⚠️ {pendingOrders.length} orders pending sync
+            {pendingOrders.length} pending sync
           </span>
         )}
-        {syncStatus === 'error' && (
-          <span className="text-danger">
-            ❌ Sync error
-          </span>
+        {syncStatus === "error" && (
+          <span className="text-danger">❌ Sync error</span>
         )}
-        {syncStatus === 'synced' && (
-          <span className="text-success">
-            ✓ All orders synced
-          </span>
-        )}
+        {syncStatus === "synced" && <span className="text-success">✓</span>}
       </div>
-    </>
+    </BillingErrorBoundary>
   );
 };
 

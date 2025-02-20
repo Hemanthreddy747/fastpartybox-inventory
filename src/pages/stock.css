@@ -49,26 +49,108 @@
   align-items: flex-end; /* This will align content to bottom */
 }
 
-.archived {
-  opacity: 0.7;
+/* New styles for optimized stock update UI */
+.stock-update-section {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 2px solid #e9ecef;
 }
 
-.archived-badge {
-  background-color: #dc3545;
-  color: white;
-  padding: 2px 6px;
+.stock-qty-input {
+  font-size: 24px !important;
+  height: 50px !important;
+  text-align: center;
+  font-weight: bold !important;
+  color: #2c3e50 !important;
+  background-color: #fff !important;
+  border: 2px solid #3498db !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+
+.stock-qty-input:focus {
+  border-color: #2980b9 !important;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25) !important;
+  background-color: #f8f9fa !important;
+}
+
+.stock-qty-label {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #2c3e50 !important;
+  margin-bottom: 8px !important;
+}
+
+.quick-update-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.quick-update-btn {
+  padding: 5px 15px;
   border-radius: 4px;
-  font-size: 0.8em;
-  position: absolute;
-  top: 5px;
-  right: 5px;
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.form-label {
-  margin-top: 16px;
-  margin-bottom: 4px !important;
+.quick-update-btn:hover {
+  background-color: #e9ecef;
 }
 
+.stock-update-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.update-stock-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+/* Modal specific styles */
 .modal-body {
   padding-top: 0px !important;
+}
+
+.form-section-divider {
+  border-top: 1px solid #dee2e6;
+  margin: 20px 0;
+  padding-top: 20px;
+}
+
+.other-fields-section {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.other-fields-section:hover {
+  opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stock-qty-input {
+    font-size: 20px !important;
+    height: 45px !important;
+  }
+  
+  .quick-update-buttons {
+    flex-wrap: wrap;
+  }
+  
+  .quick-update-btn {
+    flex: 1 1 calc(33.333% - 10px);
+    text-align: center;
+  }
 }

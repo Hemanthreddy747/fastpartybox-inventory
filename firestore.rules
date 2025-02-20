@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidString(field) {
+      return field is string && field.size() <= 500;
+    }
+    
+    function isValidNumber(field) {
+      return field is number && field >= 0 && field <= 999999999;
+    }
+    
+    function isWithinRateLimit() {
+      let requestsPath = /databases/$(database)/documents/users/$(request.auth.uid)/requests;
+      let recentRequests = getAfter(requestsPath);
+      let timeWindow = duration.value(5, 'minutes');
+      
+      return recentRequests.data.count <= 100 &&
+             recentRequests.data.lastRequest + timeWindow > request.time;
+    }
+    
+    function isWithinQuota(userId) {
+      let userDoc = get(/databases/$(database)/documents/users/$(userId));
+      let tier = userDoc.data.subscriptionTier;
+      let tierLimits = {
+        'FREE': 100,
+        'PAID': 1000,
+        'ENTERPRISE': 10000
+      };
+      let productCount = userDoc.data.productCount;
+      
+      return productCount < tierLimits[tier];
+    }
+
+    function isSubscriptionActive(userId) {
+      let userDoc = get(/databases/$(database)/documents/users/$(userId));
+      let expiryDate = userDoc.data.subscriptionExpiry;
+      return expiryDate > request.time;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() 
+        && isOwner(userId)
+        && isValidString(request.resource.data.displayName)
+        && isValidString(request.resource.data.email);
+      allow update: if isAuthenticated() 
+        && isOwner(userId)
+        && isWithinRateLimit();
+      
+      match /products/{productId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow create: if isAuthenticated() 
+          && isOwner(userId) 
+          && isWithinQuota(userId)
+          && isSubscriptionActive(userId)
+          && isValidString(request.resource.data.name)
+          && isValidNumber(request.resource.data.price)
+          && isValidNumber(request.resource.data.stock);
+        allow update: if isAuthenticated() 
+          && isOwner(userId)
+          && isValidNumber(request.resource.data.price)
+          && isValidNumber(request.resource.data.stock);
+        allow delete: if isAuthenticated() && isOwner(userId);
+      }
+      
+      match /orders/{orderId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if isAuthenticated() 
+          && isOwner(userId)
+          && isSubscriptionActive(userId)
+          && isValidNumber(request.resource.data.total);
+      }
+      
+      match /requests/{requestId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+    }
+  }
+}

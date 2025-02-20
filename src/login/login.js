@@ -15,6 +15,8 @@ import logo from "../assets/images/company-logo.jpg"; // Adjust the path as nece
 import googlelogo from "../assets/images/googlelogo.svg"; // Adjust the path as necessary
 import LoaderC from "../utills/loaderC";
 import { BiRefresh } from "react-icons/bi";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -164,9 +166,23 @@ const Login = () => {
 
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Create user document with 90-day trial period
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        createdAt: serverTimestamp(),
+        subscriptionTier: "FREE",
+        subscriptionStatus: "active",
+        subscriptionExpiry: new Date(Date.now() + (90 * 24 * 60 * 60 * 1000)), // 90 days trial
+        lastBillingDate: null
+      });
+
+      notifySuccess("Account created successfully!");
       navigate("/billing");
     } catch (error) {
+      console.error("Error during signup:", error);
       notifyError(error.message);
     } finally {
       setLoading(false);
@@ -208,20 +224,20 @@ const Login = () => {
                     required
                     className="input"
                   />
-                  <div className="captcha">
+                  <div className="captcha d-flex  justify-content-end">
                     <label>{captchaQuestion} = </label>
-                    <div className="captcha-input-group">
+                    <div className="captcha-input-groupz d-flex w-50  justify-content-end ">
                       <input
                         type="text"
                         placeholder="Answer"
                         onChange={(e) => setCaptchaAnswer(e.target.value)}
                         required
-                        className="input"
+                        className="input w-75"
                       />
                       <button
                         type="button"
                         onClick={generateCaptcha}
-                        className="reload-button"
+                        className="reload-button "
                       >
                         <BiRefresh />
                       </button>
@@ -270,11 +286,11 @@ const Login = () => {
                   />
                   <div className="captcha">
                     <label className="">{captchaQuestion} = </label>
-                    <div className="captcha-input-group w-50">
+                    <div className="captcha-input-group">
                       <input
                         className="input"
                         type="text"
-                        placeholder="Answergg"
+                        placeholder="Answer"
                         onChange={(e) => setCaptchaAnswer(e.target.value)}
                         required
                       />

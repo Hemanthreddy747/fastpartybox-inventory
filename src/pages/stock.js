@@ -15,12 +15,16 @@ import {
   serverTimestamp,
   limit,
   startAfter,
+  updateDoc, // Add this
 } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import imageCompression from "browser-image-compression";
 import "./stock.css";
 import LoaderC from "../utills/loaderC";
 import BatchUpload from "./batchUpload";
+import SEO from "../components/SEO";
+import { storageUtils } from "../utils/storageUtils";
+import { SubscriptionService } from "../services/subscriptionService";
 
 const Stock = () => {
   // ============= STATE MANAGEMENT =============
@@ -92,7 +96,7 @@ const Stock = () => {
       const imagesRef = collection(db, "users", uid, "productImages");
       const imagesSnapshot = await getDocs(imagesRef);
       const imageMap = {};
-      
+
       // Create a map of productId to image data
       imagesSnapshot.docs.forEach((doc) => {
         const imageData = doc.data();
@@ -105,16 +109,15 @@ const Stock = () => {
       localStorage.setItem("productImages", JSON.stringify(imageMap));
 
       // Attach images to products
-      productsList = productsList.map(product => ({
+      productsList = productsList.map((product) => ({
         ...product,
-        productImage: product.productId ? imageMap[product.productId] : null
+        productImage: product.productId ? imageMap[product.productId] : null,
       }));
 
       // Update state based on loadMore and forceRefresh flags
       setProducts((prev) =>
         loadMore && !forceRefresh ? [...prev, ...productsList] : productsList
       );
-
     } catch (error) {
       console.error("Fetch products error:", error);
       notifyError("Error fetching products");
@@ -129,7 +132,14 @@ const Stock = () => {
     setLoading(true);
 
     try {
-      if (!userUID || !formData.productImage) return;
+      if (!userUID) return;
+
+      // Check subscription limits before adding
+      const canAddProduct = await SubscriptionService.checkLimit(userUID, 'products');
+      if (!canAddProduct) {
+        toast.error("You've reached your product limit. Please upgrade your subscription.");
+        return;
+      }
 
       const batch = writeBatch(db);
       const productId = generateRandomCode(8);
@@ -194,6 +204,12 @@ const Stock = () => {
     setLoading(true);
 
     try {
+      const validationErrors = validateForm(formData);
+      if (validationErrors.length > 0) {
+        validationErrors.forEach(error => toast.error(error));
+        return;
+      }
+
       if (!userUID) return;
 
       const batch = writeBatch(db);
@@ -404,9 +420,72 @@ const Stock = () => {
     ).join("");
   };
 
+  const validateForm = (data) => {
+    const errors = [];
+    
+    if (!data.productName?.trim()) errors.push("Product name is required");
+    if (isNaN(data.stockQty) || data.stockQty < 0) errors.push("Invalid stock quantity");
+    if (isNaN(data.mrp) || data.mrp < 0) errors.push("Invalid MRP");
+    if (isNaN(data.wholesalePrice) || data.wholesalePrice < 0) errors.push("Invalid wholesale price");
+    if (data.wholesalePrice > data.mrp) errors.push("Wholesale price cannot be greater than MRP");
+    
+    return errors;
+  };
+
   // ============= COMPUTED PROPERTIES =============
   const activeProducts = products.filter((product) => !product.archived);
   const archivedProducts = products.filter((product) => product.archived);
+
+  // Add these functions to your Stock component
+  const handleQuickUpdate = (amount) => {
+    const currentQty = parseInt(formData.stockQty) || 0;
+    const newQty = Math.max(0, currentQty + amount);
+    setFormData({
+      ...formData,
+      stockQty: newQty.toString(),
+    });
+  };
+
+  const handleQuickStockUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (!userUID || !currentProductId) return;
+
+      const updateData = {
+        stockQty: parseInt(formData.stockQty),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Store update in local storage if offline
+      if (!navigator.onLine) {
+        const pendingUpdates = JSON.parse(localStorage.getItem('pendingProductUpdates') || '[]');
+        pendingUpdates.push({
+          productId: currentProductId,
+          data: updateData,
+          timestamp: Date.now()
+        });
+        localStorage.setItem('pendingProductUpdates', JSON.stringify(pendingUpdates));
+        toast.info("Update stored offline. Will sync when online");
+        return;
+      }
+
+      const productRef = doc(db, "users", userUID, "products", currentProductId);
+      await updateDoc(productRef, {
+        ...updateData,
+        updatedAt: serverTimestamp(),
+      });
+
+      notifySuccess("Stock quantity updated successfully");
+      await fetchProducts(userUID);
+      setShowEditModal(false);
+    } catch (error) {
+      notifyError("Error updating stock quantity");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -513,217 +592,280 @@ const Stock = () => {
         {/* Edit Product Modal */}
         <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
           <Modal.Header closeButton>
-            <Modal.Title>Edit Product</Modal.Title>
+            <Modal.Title>Update Stock - {formData.productName}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={handleEditProduct}>
-              <Row>
-                <Col xs={6}>
-                  <Form.Group controlId="formProductName">
-                    <Form.Label>Product Name</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="productName"
-                      value={formData.productName || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formProductDesc">
-                    <Form.Label>Product Desc</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="productDesc"
-                      value={formData.productDesc || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formBrand">
-                    <Form.Label>Brand</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="brand"
-                      value={formData.brand || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formCategory">
-                    <Form.Label>Category</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="category"
-                      value={formData.category || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formBulkPrice">
-                    <Form.Label>Bulk Price</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="bulkPrice"
-                      value={formData.bulkPrice || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formRetailPrice">
-                    <Form.Label>Retail Price</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="retailPrice"
-                      value={formData.retailPrice || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formWholesalePrice">
-                    <Form.Label>Wholesale Price</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="wholesalePrice"
-                      value={formData.wholesalePrice || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formStockQty">
-                    <Form.Label>Stock Qty</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="stockQty"
-                      value={formData.stockQty || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formMinStock">
-                    <Form.Label>Min Stock</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="minStock"
-                      value={formData.minStock || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formOfferValue">
-                    <Form.Label>Offer Value</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="offerValue"
-                      value={formData.offerValue || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formRank">
-                    <Form.Label>Rank</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="rank"
-                      value={formData.rank || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formPurchasePrice">
-                    <Form.Label>Purchase Price</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="purchasePrice"
-                      value={formData.purchasePrice || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group controlId="formMrp">
-                    <Form.Label>Mrp</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="mrp"
-                      value={formData.mrp || ""}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={9}>
-                  <Form.Group controlId="formProductImage">
-                    <Form.Label>Product Image</Form.Label>
+              {/* Stock Update Section */}
+              <div className="stock-update-section">
+                <Row>
+                  <Col xs={12}>
+                    <Form.Group controlId="formStockQty">
+                      <Form.Label className="stock-qty-label">
+                        Current Stock Quantity
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="stockQty"
+                        value={formData.stockQty || ""}
+                        onChange={handleInputChange}
+                        className="stock-qty-input"
+                        required
+                        autoFocus
+                      />
+                    </Form.Group>
 
-                    <Form.Control
-                      type="file"
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          productImage: e.target.files[0],
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-                <Col xs={3}>
-                  <Form.Group controlId="formProductImage">
-                    {formData.productImage &&
-                      typeof formData.productImage === "string" && (
-                        <div className="mt-2">
-                          <img
-                            src={formData.productImage}
-                            alt="Current product"
-                            style={{ maxWidth: "50px", height: "auto" }}
-                          />
-                        </div>
-                      )}
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Button variant="primary" type="submit" className="mt-3">
-                Update Product
-              </Button>
-              <Button
-                variant="warning"
-                type="button"
-                onClick={handleArchiveProduct}
-                className="ms-4 me-4 mt-3"
-              >
-                {formData.archived ? "Unarchive" : "Archive"}
-              </Button>
-              <Button
-                variant="danger"
-                type="button"
-                onClick={handlePermanentDelete}
-                className="me-2 mt-3"
-              >
-                Delete
-              </Button>
-              <div></div>
+                    <div className="quick-update-buttons">
+                      <button
+                        type="button"
+                        className="quick-update-btn"
+                        onClick={() => handleQuickUpdate(1)}
+                      >
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        className="quick-update-btn"
+                        onClick={() => handleQuickUpdate(5)}
+                      >
+                        +5
+                      </button>
+                      <button
+                        type="button"
+                        className="quick-update-btn"
+                        onClick={() => handleQuickUpdate(10)}
+                      >
+                        +10
+                      </button>
+                      <button
+                        type="button"
+                        className="quick-update-btn"
+                        onClick={() => handleQuickUpdate(-1)}
+                      >
+                        -1
+                      </button>
+                      <button
+                        type="button"
+                        className="quick-update-btn"
+                        onClick={() => handleQuickUpdate(-5)}
+                      >
+                        -5
+                      </button>
+                    </div>
+
+                    <div className="stock-update-actions">
+                      <Button
+                        variant="primary"
+                        className="update-stock-btn"
+                        onClick={handleQuickStockUpdate}
+                      >
+                        Update Stock
+                      </Button>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Other Fields Section */}
+              <div className="form-section-divider"></div>
+              <div className="other-fields-section">
+                <Row>
+                  {/* Your existing form fields */}
+                  <Col xs={6}>
+                    <Form.Group controlId="formProductName">
+                      <Form.Label>Product Name</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="productName"
+                        value={formData.productName || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formProductDesc">
+                      <Form.Label>Product Desc</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="productDesc"
+                        value={formData.productDesc || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formBrand">
+                      <Form.Label>Brand</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="brand"
+                        value={formData.brand || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formCategory">
+                      <Form.Label>Category</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="category"
+                        value={formData.category || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formBulkPrice">
+                      <Form.Label>Bulk Price</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="bulkPrice"
+                        value={formData.bulkPrice || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formRetailPrice">
+                      <Form.Label>Retail Price</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="retailPrice"
+                        value={formData.retailPrice || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formWholesalePrice">
+                      <Form.Label>Wholesale Price</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="wholesalePrice"
+                        value={formData.wholesalePrice || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formMinStock">
+                      <Form.Label>Min Stock</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="minStock"
+                        value={formData.minStock || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formOfferValue">
+                      <Form.Label>Offer Value</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="offerValue"
+                        value={formData.offerValue || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formRank">
+                      <Form.Label>Rank</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="rank"
+                        value={formData.rank || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formPurchasePrice">
+                      <Form.Label>Purchase Price</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="purchasePrice"
+                        value={formData.purchasePrice || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formMrp">
+                      <Form.Label>Mrp</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="mrp"
+                        value={formData.mrp || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={9}>
+                    <Form.Group controlId="formProductImage">
+                      <Form.Label>Product Image</Form.Label>
+
+                      <Form.Control
+                        type="file"
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            productImage: e.target.files[0],
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={3}>
+                    <Form.Group controlId="formProductImage">
+                      {formData.productImage &&
+                        typeof formData.productImage === "string" && (
+                          <div className="mt-2">
+                            <img
+                              src={formData.productImage}
+                              alt="Current product"
+                              style={{ maxWidth: "50px", height: "auto" }}
+                            />
+                          </div>
+                        )}
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Button variant="primary" type="submit" className="mt-3">
+                  Update All Details
+                </Button>
+                <Button
+                  variant="warning"
+                  type="button"
+                  onClick={handleArchiveProduct}
+                  className="ms-4 me-4 mt-3"
+                >
+                  {formData.archived ? "Unarchive" : "Archive"}
+                </Button>
+                <Button
+                  variant="danger"
+                  type="button"
+                  onClick={handlePermanentDelete}
+                  className="me-2 mt-3"
+                >
+                  Delete
+                </Button>
+              </div>
             </Form>
           </Modal.Body>
         </Modal>
@@ -764,10 +906,10 @@ const Stock = () => {
                     Qty: <span>99</span>
                   </p>
                   <p>
-                    <span>Sample Product</span>
+                    <span>Sample Product name</span>
                   </p>
-                  <p className="mt-4">MRP: 0.00</p>
-                  <p>Bulk Price: 0.00</p>
+                  <p className="mt-4">MRP: 9.99</p>
+                  <p>Bulk Price: 9.99</p>
                 </div>
               </div>
             </div>
