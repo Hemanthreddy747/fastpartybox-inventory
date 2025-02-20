@@ -1,0 +1,38 @@
+.sync-status-alert {
+  margin-bottom: 20px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.badge {
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.billing-history-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.modal-body table {
+  font-size: 0.9rem;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}

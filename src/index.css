@@ -1,0 +1,115 @@
+:root {
+  --primary-color: #ff6f61; /* Orange */
+  --secondary-color: #6a1b9a; /* Purple */
+  --gradient-start: #eb2412;
+  --gradient-end: #9212e2;
+  --font-size-base: 16px;
+  --font-size-large: 1.5rem;
+  --font-size-medium: 1.25rem;
+  --font-size-small: 0.875rem;
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
+  --border-radius: 10px;
+  --transition-duration: 0.3s;
+
+  /* Additional standard values */
+  --background-color: #ffffff; /* White */
+  --text-color: #333333; /* Dark Gray */
+  --link-color: #1e90ff; /* Dodger Blue */
+  --link-hover-color: #ff4500; /* Orange Red */
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --max-width: 1200px;
+  --padding-base: 1rem;
+  --margin-base: 1rem;
+  --line-height: 1.6;
+  --z-index-modal: 1000;
+  --z-index-dropdown: 100;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: lato;
+  /* font-family:  sans-serif ; */
+  line-height: 100%;
+}
+html {
+  width: 100%;
+  height: 100%;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* display: flex; */
+  /* justify-content: center;
+  align-items: center; */
+  /* height: 100; */
+  /* background-color: linear-gradient(
+    135deg,
+    var(--gradient-start),
+    var(--gradient-end)
+  ); */
+  background-color: blue;
+  /* background-repeat: no-repeat; */
+  /* height: 100%; */
+}
+
+.button {
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  font-size: var(--font-size-medium);
+  border-radius: var(--border-radius);
+  transition: background-color var(--transition-duration);
+  white-space: nowrap;
+}
+button {
+  white-space: nowrap;
+}
+
+.button:hover {
+  background-color: var(--secondary-color);
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-color);
+  text-align: justify;
+  text-decoration-line: none;
+  text-decoration: none;
+}
+
+li {
+  list-style: none;
+  text-decoration: none;
+  text-decoration-line: none;
+}
+
+/* Links */
+a,
+.tab {
+  color: var(--link-color);
+  text-decoration: none !important;
+  transition: color var(--transition-duration);
+  text-decoration-line: none;
+}
+
+a:hover {
+  color: var(--link-hover-color);
+  text-decoration-line: none;
+}
+
+/* Modals */
+.modal {
+  z-index: var(--z-index-modal);
+}
+
+/* Dropdowns */
+.dropdown {
+  z-index: var(--z-index-dropdown);
+}

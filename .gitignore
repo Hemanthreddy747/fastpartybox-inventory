@@ -1,0 +1,72 @@
+# # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# # dependencies
+# /node_modules
+# /.pnp
+# .pnp.js
+
+# # testing
+# /coverage
+
+# # production
+# /build
+
+# # misc
+# .DS_Store
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+
+# npm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Node modules
+/node_modules/
+
+# Build output
+/build/
+/dist/
+
+# Production
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Miscellaneous
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# React Native specific files (if applicable)
+/android/
+/ios/
+
+# Other configurations (if applicable)
+*.iml
+
+# Ignore any other sensitive or temporary files you may create

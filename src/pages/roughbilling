@@ -1,0 +1,824 @@
+// // import React, { useState, useEffect, useCallback, useMemo } from "react";
+// // import { Button, Form, Table, Modal } from "react-bootstrap";
+// // import { db } from "../firebase/firebase";
+// // import {
+// //   collection,
+// //   getDocs,
+// //   addDoc,
+// //   query,
+// //   where,
+// //   serverTimestamp,
+// //   limit,
+// //   writeBatch,
+// //   doc,
+// //   increment,
+// // } from "firebase/firestore";
+// // import { getAuth, onAuthStateChanged } from "firebase/auth";
+// // import { ToastContainer, toast } from "react-toastify";
+// // import "react-toastify/dist/ReactToastify.css";
+// // import "./billing.css";
+// // import LoaderC from "../utills/loaderC";
+
+// // const Billing = () => {
+// //   const [products, setProducts] = useState([]);
+// //   const [cart, setCart] = useState([]);
+// //   const [searchTerm, setSearchTerm] = useState("");
+// //   const [sortOption, setSortOption] = useState("");
+// //   const [loading, setLoading] = useState(false);
+// //   const [userUID, setUserUID] = useState(null);
+// //   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+// //   const [showCartModal, setShowCartModal] = useState(false);
+// //   const [processingCheckout, setProcessingCheckout] = useState(false);
+// //   const [customerInfo, setCustomerInfo] = useState({
+// //     name: "",
+// //     phone: "",
+// //     email: "",
+// //     address: "",
+// //   });
+
+// //   const notifySuccess = (message) => toast.success(message);
+// //   const notifyError = (message) => toast.error(message);
+
+// //   const cacheProductImages = useCallback(async (uid) => {
+// //     if (!uid) return;
+// //     try {
+// //       const cachedImages = JSON.parse(
+// //         localStorage.getItem("productImages") || "{}"
+// //       );
+// //       const imageCache = { ...cachedImages };
+
+// //       const productsRef = collection(db, "users", uid, "products");
+// //       const q = query(productsRef, where("archived", "==", false), limit(50));
+// //       const querySnapshot = await getDocs(q);
+// //       const products = querySnapshot.docs.map((doc) => ({
+// //         id: doc.id,
+// //         ...doc.data(),
+// //       }));
+
+// //       const uncachedProducts = products.filter(
+// //         (product) => !imageCache[product.productId]
+// //       );
+
+// //       if (uncachedProducts.length > 0) {
+// //         const imagesRef = collection(db, "users", uid, "productImages");
+// //         const imagesPromises = uncachedProducts.map(async (product) => {
+// //           if (!product.productId) return null;
+// //           const imagesQuery = query(
+// //             imagesRef,
+// //             where("productId", "==", product.productId)
+// //           );
+// //           const imagesSnapshot = await getDocs(imagesQuery);
+// //           return {
+// //             productId: product.productId,
+// //             images: imagesSnapshot.docs.map((doc) => doc.data()),
+// //           };
+// //         });
+
+// //         const results = await Promise.all(imagesPromises);
+// //         results.forEach((result) => {
+// //           if (result) {
+// //             imageCache[result.productId] = result.images;
+// //           }
+// //         });
+
+// //         localStorage.setItem("productImages", JSON.stringify(imageCache));
+// //       }
+
+// //       return imageCache;
+// //     } catch (error) {
+// //       console.error("Error caching product images:", error);
+// //       return {};
+// //     }
+// //   }, []);
+
+// //   const fetchProducts = useCallback(async (uid) => {
+// //     if (!uid) return;
+// //     setLoading(true);
+
+// //     try {
+// //       const productsRef = collection(db, "users", uid, "products");
+// //       const q = query(productsRef, where("archived", "==", false), limit(50));
+// //       const querySnapshot = await getDocs(q);
+
+// //       const cachedImages = JSON.parse(
+// //         localStorage.getItem("productImages") || "{}"
+// //       );
+
+// //       const productsList = querySnapshot.docs.map((doc) => {
+// //         const data = doc.data();
+// //         return {
+// //           id: doc.id,
+// //           ...data,
+// //           productImage:
+// //             data.productId && cachedImages[data.productId]?.[0]?.productImage,
+// //         };
+// //       });
+
+// //       setProducts(productsList);
+// //     } catch (error) {
+// //       console.error("Error fetching products:", error);
+// //       notifyError("Error fetching products");
+// //     } finally {
+// //       setLoading(false);
+// //     }
+// //   }, []);
+
+// //   useEffect(() => {
+// //     const auth = getAuth();
+// //     const unsubscribe = onAuthStateChanged(auth, (user) => {
+// //       if (user) {
+// //         setUserUID(user.uid);
+// //         cacheProductImages(user.uid).then(() => {
+// //           fetchProducts(user.uid);
+// //         });
+// //       }
+// //     });
+// //     return () => unsubscribe();
+// //   }, [fetchProducts, cacheProductImages]);
+
+// //   const addToCart = useCallback((product) => {
+// //     setCart((prevCart) => {
+// //       const existingItem = prevCart.find((item) => item.id === product.id);
+// //       if (existingItem) {
+// //         if (existingItem.quantity >= product.stockQty) {
+// //           notifyError("Cannot add more than available stock");
+// //           return prevCart;
+// //         }
+// //         return prevCart.map((item) =>
+// //           item.id === product.id
+// //             ? { ...item, quantity: item.quantity + 1 }
+// //             : item
+// //         );
+// //       }
+// //       return [...prevCart, { ...product, quantity: 1 }];
+// //     });
+// //   }, []);
+
+// //   const removeFromCart = useCallback((productId) => {
+// //     setCart((prevCart) =>
+// //       prevCart
+// //         .map((item) => {
+// //           if (item.id === productId) {
+// //             return item.quantity === 1
+// //               ? null
+// //               : { ...item, quantity: item.quantity - 1 };
+// //           }
+// //           return item;
+// //         })
+// //         .filter(Boolean)
+// //     );
+// //   }, []);
+
+// //   const updateQuantity = useCallback(
+// //     (productId, newQuantity) => {
+// //       if (newQuantity < 1) return;
+
+// //       const product = products.find((p) => p.id === productId);
+// //       if (newQuantity > product.stockQty) {
+// //         notifyError("Cannot add more than available stock");
+// //         return;
+// //       }
+
+// //       setCart((prevCart) =>
+// //         prevCart.map((item) =>
+// //           item.id === productId ? { ...item, quantity: newQuantity } : item
+// //         )
+// //       );
+// //     },
+// //     [products]
+// //   );
+
+// //   const calculateTotal = useCallback(() => {
+// //     return cart.reduce(
+// //       (total, item) => total + item.retailPrice * item.quantity,
+// //       0
+// //     );
+// //   }, [cart]);
+
+// //   const getQuantityInCart = useCallback(
+// //     (productId) => {
+// //       const item = cart.find((item) => item.id === productId);
+// //       return item ? item.quantity : 0;
+// //     },
+// //     [cart]
+// //   );
+
+// //   const handleCheckout = async () => {
+// //     if (!customerInfo.name || !customerInfo.phone) {
+// //       notifyError("Please fill in customer name and phone number");
+// //       return;
+// //     }
+
+// //     setProcessingCheckout(true);
+// //     try {
+// //       const batch = writeBatch(db);
+
+// //       // Create order document reference
+// //       const orderRef = doc(collection(db, "users", userUID, "orders"));
+
+// //       // Prepare order data
+// //       const orderData = {
+// //         customerInfo,
+// //         items: cart,
+// //         total: calculateTotal(),
+// //         timestamp: serverTimestamp(),
+// //         status: "completed",
+// //       };
+
+// //       // Add order to batch
+// //       batch.set(orderRef, orderData);
+
+// //       // Update product quantities in the same batch
+// //       cart.forEach((item) => {
+// //         const productRef = doc(db, "users", userUID, "products", item.id);
+// //         batch.update(productRef, {
+// //           stockQty: increment(-item.quantity),
+// //         });
+// //       });
+
+// //       // Commit all changes in a single batch
+// //       await batch.commit();
+
+// //       notifySuccess("Order completed successfully");
+// //       setCart([]);
+// //       setCustomerInfo({
+// //         name: "",
+// //         phone: "",
+// //         email: "",
+// //         address: "",
+// //       });
+// //       setShowCheckoutModal(false);
+// //       fetchProducts(userUID);
+// //     } catch (error) {
+// //       console.error("Error processing checkout:", error);
+// //       notifyError("Error processing checkout");
+// //     } finally {
+// //       setProcessingCheckout(false);
+// //     }
+// //   };
+
+// //   const filteredProducts = useMemo(() => {
+// //     return products
+// //       .filter((product) =>
+// //         product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+// //       )
+// //       .sort((a, b) => {
+// //         switch (sortOption) {
+// //           case "name":
+// //             return a.productName.localeCompare(b.productName);
+// //           case "price":
+// //             return a.retailPrice - b.retailPrice;
+// //           default:
+// //             return 0;
+// //         }
+// //       });
+// //   }, [products, searchTerm, sortOption]);
+
+// //   return (
+// //     <>
+// //       {loading && <LoaderC />}
+// //       <ToastContainer />
+// //       <div className="billing-container">
+// //         <div className="search-sort-section p-2">
+// //           <Form.Control
+// //             type="text"
+// //             placeholder="Search products..."
+// //             value={searchTerm}
+// //             onChange={(e) => setSearchTerm(e.target.value)}
+// //             className="w-25"
+// //           />
+// //           <Form.Select
+// //             value={sortOption}
+// //             onChange={(e) => setSortOption(e.target.value)}
+// //             className="w-25"
+// //           >
+// //             <option value="">Sort by...</option>
+// //             <option value="name">Name</option>
+// //             <option value="price">Price</option>
+// //           </Form.Select>
+// //         </div>
+
+// //         <div className="billing-content">
+// //           <div className="product-flex-container m-1">
+// //             {filteredProducts.map((product) => (
+// //               <div
+// //                 className={`product-card ${
+// //                   getQuantityInCart(product.id) > 0 ? "has-items" : ""
+// //                 }`}
+// //                 key={product.id}
+// //                 style={{
+// //                   backgroundImage: product.productImage
+// //                     ? `url(${product.productImage})`
+// //                     : "url(https://via.placeholder.com/150)",
+// //                 }}
+// //                 onClick={() => addToCart(product)}
+// //               >
+// //                 {getQuantityInCart(product.id) > 0 && (
+// //                   <>
+// //                     <div className="product-quantity-badge">
+// //                       {getQuantityInCart(product.id)}
+// //                     </div>
+// //                     <button
+// //                       className="product-minus-button"
+// //                       onClick={(e) => {
+// //                         e.stopPropagation();
+// //                         removeFromCart(product.id);
+// //                       }}
+// //                     >
+// //                       -
+// //                     </button>
+// //                   </>
+// //                 )}
+// //                 <div className="details">
+// //                   <div className="p-2">
+// //                     <p>
+// //                       Qty: <span>{product.stockQty}</span>
+// //                     </p>
+// //                     <p>
+// //                       <span>{product.productName}</span>
+// //                     </p>
+// //                     <p className="">MRP: ₹{product.mrp}</p>
+// //                     <p>Price: ₹{product.retailPrice}</p>
+// //                   </div>
+// //                 </div>
+// //               </div>
+// //             ))}
+// //           </div>
+// //           {cart.length > 0 && (
+// //             <div
+// //               className="floating-cart"
+// //               onClick={() => setShowCartModal(true)}
+// //             >
+// //               <i className="fas fa-shopping-cart"></i>
+// //               <div className="cart-total">₹{calculateTotal()}</div>
+// //               <div className="cart-counter">
+// //                 {cart.reduce((sum, item) => sum + item.quantity, 0)}
+// //               </div>
+// //             </div>
+// //           )}
+// //         </div>
+// //       </div>
+
+// //       {/* Cart Modal */}
+// //       <Modal show={showCartModal} onHide={() => setShowCartModal(false)}>
+// //         <Modal.Header closeButton>
+// //           <Modal.Title>Shopping Cart</Modal.Title>
+// //         </Modal.Header>
+// //         <Modal.Body>
+// //           <Table striped bordered hover>
+// //             <thead>
+// //               <tr>
+// //                 <th>Product</th>
+// //                 <th>Quantity</th>
+// //                 <th>Price</th>
+// //                 <th>Action</th>
+// //               </tr>
+// //             </thead>
+// //             <tbody>
+// //               {cart.map((item) => (
+// //                 <tr key={item.id}>
+// //                   <td>{item.productName}</td>
+// //                   <td>
+// //                     <Form.Control
+// //                       type="number"
+// //                       min="1"
+// //                       value={item.quantity}
+// //                       onChange={(e) =>
+// //                         updateQuantity(item.id, parseInt(e.target.value))
+// //                       }
+// //                     />
+// //                   </td>
+// //                   <td>₹{item.retailPrice * item.quantity}</td>
+// //                   <td>
+// //                     <Button
+// //                       variant="danger"
+// //                       size="sm"
+// //                       onClick={() => removeFromCart(item.id)}
+// //                     >
+// //                       Remove
+// //                     </Button>
+// //                   </td>
+// //                 </tr>
+// //               ))}
+// //             </tbody>
+// //           </Table>
+// //           <div className="d-flex justify-content-between align-items-center mt-3">
+// //             <h4>Total: ₹{calculateTotal()}</h4>
+// //             <div className="cart-actions">
+// //               <Button
+// //                 variant="danger"
+// //                 onClick={() => {
+// //                   setCart([]);
+// //                   setShowCartModal(false);
+// //                 }}
+// //                 className="cancel-all-button"
+// //               >
+// //                 Cancel All
+// //               </Button>
+// //               <Button
+// //                 variant="primary"
+// //                 onClick={() => {
+// //                   setShowCartModal(false);
+// //                   setShowCheckoutModal(true);
+// //                 }}
+// //               >
+// //                 Proceed to Checkout
+// //               </Button>
+// //             </div>
+// //           </div>
+// //         </Modal.Body>
+// //       </Modal>
+
+// //       {/* Checkout Modal */}
+// //       <Modal
+// //         show={showCheckoutModal}
+// //         onHide={() => setShowCheckoutModal(false)}
+// //       >
+// //         <Modal.Header closeButton>
+// //           <Modal.Title>Checkout</Modal.Title>
+// //         </Modal.Header>
+// //         <Modal.Body>
+// //           <Form>
+// //             <Form.Group className="mb-3">
+// //               <Form.Label>Customer Name</Form.Label>
+// //               <Form.Control
+// //                 type="text"
+// //                 value={customerInfo.name}
+// //                 onChange={(e) =>
+// //                   setCustomerInfo({ ...customerInfo, name: e.target.value })
+// //                 }
+// //               />
+// //             </Form.Group>
+// //             <Form.Group className="mb-3">
+// //               <Form.Label>Phone Number</Form.Label>
+// //               <Form.Control
+// //                 type="tel"
+// //                 value={customerInfo.phone}
+// //                 onChange={(e) =>
+// //                   setCustomerInfo({ ...customerInfo, phone: e.target.value })
+// //                 }
+// //               />
+// //             </Form.Group>
+// //             <Form.Group className="mb-3">
+// //               <Form.Label>Email (Optional)</Form.Label>
+// //               <Form.Control
+// //                 type="email"
+// //                 value={customerInfo.email}
+// //                 onChange={(e) =>
+// //                   setCustomerInfo({ ...customerInfo, email: e.target.value })
+// //                 }
+// //               />
+// //             </Form.Group>
+// //             <Form.Group className="mb-3">
+// //               <Form.Label>Address (Optional)</Form.Label>
+// //               <Form.Control
+// //                 as="textarea"
+// //                 rows={3}
+// //                 value={customerInfo.address}
+// //                 onChange={(e) =>
+// //                   setCustomerInfo({ ...customerInfo, address: e.target.value })
+// //                 }
+// //               />
+// //             </Form.Group>
+// //           </Form>
+// //         </Modal.Body>
+// //         <Modal.Footer>
+// //           <Button
+// //             variant="secondary"
+// //             onClick={() => setShowCheckoutModal(false)}
+// //             disabled={processingCheckout}
+// //           >
+// //             Cancel
+// //           </Button>
+// //           <Button
+// //             variant="primary"
+// //             onClick={handleCheckout}
+// //             disabled={processingCheckout}
+// //           >
+// //             {processingCheckout ? "Processing..." : "Complete Order"}
+// //           </Button>
+// //         </Modal.Footer>
+// //       </Modal>
+// //     </>
+// //   );
+// // };
+
+// // export default Billing;
+// .billing-container {
+//   display: flex;
+//   flex-direction: column;
+//   height: calc(100vh - 56px);
+//   overflow: hidden;
+//   background-color: #f5f7fa;
+// }
+
+// .search-sort-section {
+//   display: flex;
+//   gap: 1rem;
+//   background-color: #ffffff;
+//   border-bottom: 1px solid #e1e4e8;
+//   padding: 1rem;
+//   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+//   flex-shrink: 0;
+// }
+
+// .billing-content {
+//   display: flex;
+//   flex: 1;
+//   overflow: hidden;
+//   position: relative;
+// }
+
+// .product-flex-container {
+//   display: flex;
+//   flex-wrap: wrap;
+//   justify-content: flex-start;
+//   gap: 7px;
+//   padding: 1rem;
+//   overflow-y: auto;
+//   width: 100%;
+//   height: 100%;
+// }
+
+// .product-card {
+//   width: 200px;
+//   height: 200px;
+//   border-radius: 12px;
+//   overflow: hidden;
+//   position: relative;
+//   background-size: cover;
+//   background-position: center;
+//   cursor: pointer;
+//   transition: all 0.3s ease;
+//   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+// }
+
+// .product-card .details {
+//   position: absolute;
+//   bottom: 0;
+//   left: 0;
+//   right: 0;
+//   background: rgba(255, 255, 255, 0.9);
+//   padding: 8px;
+//   transform: translateY(100%);
+//   transition: transform 0.3s ease;
+// }
+
+// .product-card:hover .details {
+//   transform: translateY(0);
+// }
+
+// .product-quantity-badge {
+//   position: absolute;
+//   top: 5px;
+//   right: 5px;
+//   background-color: #007bff;
+//   color: white;
+//   width: 25px;
+//   height: 25px;
+//   border-radius: 50%;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   font-weight: bold;
+//   font-size: 0.9rem;
+//   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+//   z-index: 2;
+// }
+
+// .product-minus-button {
+//   position: absolute;
+//   top: 5px;
+//   left: 5px;
+//   background-color: #dc3545;
+//   color: white;
+//   width: 25px;
+//   height: 25px;
+//   border-radius: 50%;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   font-weight: bold;
+//   font-size: 1.2rem;
+//   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+//   z-index: 2;
+//   cursor: pointer;
+//   transition: all 0.2s ease;
+//   border: none;
+//   padding: 0;
+//   line-height: 1;
+// }
+
+// .product-minus-button:hover {
+//   transform: scale(1.1);
+//   background-color: #c82333;
+// }
+
+// .product-minus-button:active {
+//   transform: scale(0.95);
+// }
+
+// .product-card:not(.has-items) .product-minus-button {
+//   display: none;
+// }
+
+// .floating-cart {
+//   position: fixed;
+//   bottom: 30px;
+//   right: 30px;
+//   background-color: #1aa760;
+//   color: white;
+//   width: 60px;
+//   height: 60px;
+//   border-radius: 50%;
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+//   justify-content: center;
+//   cursor: pointer;
+//   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+//   transition: transform 0.3s ease, box-shadow 0.3s ease;
+//   z-index: 1000;
+// }
+
+// .floating-cart:hover {
+//   transform: scale(1.1);
+//   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+// }
+
+// .floating-cart i {
+//   font-size: 20px;
+//   margin-bottom: 2px;
+// }
+
+// .cart-counter {
+//   position: absolute;
+//   top: -8px;
+//   right: -8px;
+//   background-color: #dc3545;
+//   color: white;
+//   width: 25px;
+//   height: 25px;
+//   border-radius: 50%;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   font-size: 0.9rem;
+//   font-weight: bold;
+//   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+//   transition: transform 0.2s ease;
+// }
+
+// .cart-counter.updating {
+//   transform: scale(1.2);
+// }
+
+// .cart-total {
+//   font-size: 0.8rem;
+//   font-weight: bold;
+//   line-height: 1;
+// }
+
+// .processing-overlay {
+//   position: fixed;
+//   top: 0;
+//   left: 0;
+//   right: 0;
+//   bottom: 0;
+//   background: rgba(0, 0, 0, 0.5);
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   z-index: 9999;
+// }
+
+// .processing-spinner {
+//   width: 50px;
+//   height: 50px;
+//   border: 3px solid #f3f3f3;
+//   border-top: 3px solid #3498db;
+//   border-radius: 50%;
+//   animation: spin 1s linear infinite;
+// }
+
+// .checkout-button {
+//   position: relative;
+//   min-width: 150px;
+// }
+
+// .checkout-button:disabled {
+//   background-color: #6c757d;
+//   cursor: not-allowed;
+// }
+
+// .checkout-button .spinner-border {
+//   width: 1rem;
+//   height: 1rem;
+//   margin-right: 0.5rem;
+// }
+
+// .modal {
+//   transition: opacity 0.15s linear;
+// }
+
+// .modal-dialog {
+//   transform: none;
+//   transition: transform 0.15s ease-out;
+// }
+
+// .btn {
+//   transition: all 0.15s ease-in-out;
+// }
+
+// .loading-state {
+//   opacity: 0.7;
+//   pointer-events: none;
+// }
+
+// .cart-actions {
+//   display: flex;
+//   gap: 10px;
+// }
+
+// .cancel-all-button {
+//   margin-right: 10px;
+// }
+
+// @keyframes spin {
+//   0% {
+//     transform: rotate(0deg);
+//   }
+//   100% {
+//     transform: rotate(360deg);
+//   }
+// }
+
+// @media (max-width: 768px) {
+//   .billing-content {
+//     flex-direction: column;
+//   }
+
+//   .cart-section {
+//     width: 100%;
+//     margin-top: 1rem;
+//   }
+
+//   .product-card {
+//     width: calc(50% - 0.5rem);
+//     height: 180px;
+//   }
+
+//   .search-sort-section {
+//     gap: 0.5rem;
+//   }
+
+//   .floating-cart {
+//     bottom: 20px;
+//     right: 20px;
+//     width: 50px;
+//     height: 50px;
+//   }
+
+//   .floating-cart i {
+//     font-size: 16px;
+//   }
+
+//   .cart-total {
+//     font-size: 0.7rem;
+//   }
+
+//   .product-minus-button,
+//   .product-quantity-badge {
+//     width: 22px;
+//     height: 22px;
+//     font-size: 0.8rem;
+//   }
+// }
+
+// @media (max-width: 380px) {
+//   .product-card {
+//     width: 100%;
+//     height: 160px;
+//   }
+
+//   .product-quantity-badge,
+//   .product-minus-button {
+//     width: 20px;
+//     height: 20px;
+//     font-size: 0.8rem;
+//   }
+
+//   .floating-cart {
+//     bottom: 15px;
+//     right: 15px;
+//   }
+
+//   .search-sort-section {
+//     flex-direction: column;
+//   }
+
+//   .search-sort-section .form-control,
+//   .search-sort-section .form-select {
+//     width: 100% !important;
+//   }
+// }
