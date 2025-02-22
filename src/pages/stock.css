@@ -1,8 +1,18 @@
-.product-flex-container {
+/* .product-flex-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
   gap: 7px;
+} */
+
+.product-flex-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 7px;
+  padding: 7px;
+  width: 100%;
+  justify-items: center;
+ 
 }
 
 .product-flex-container p {
@@ -14,33 +24,30 @@
   font-weight: 500;
 }
 .product-card {
-  -webkit-user-select: none;  /* Safari */
-  -ms-user-select: none;      /* IE 10 and IE 11 */
-  user-select: none;          /* Standard syntax */
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
 }
-
-
-
-
 .product-card {
+   
   flex: 1 1 120px;
   width: 120px;
-  max-width: 160px;
+  max-width: 120px;
   height: 150px;
   position: relative;
   background-size: 100%;
   background-repeat: no-repeat;
   border-radius: 8px;
   overflow: hidden;
-  /* box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
-    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px; */
   display: flex;
   align-items: flex-start;
   color: white;
   cursor: pointer;
+  
 }
 
-.out-of-stock-badge, .archived-badge {
+.out-of-stock-badge,
+.archived-badge {
   color: white;
   padding: 2px 6px;
   border-radius: 4px;
@@ -86,12 +93,10 @@
   display: flex;
   align-items: flex-end;
 }
-.productnameoncard{
+.productnameoncard {
   max-height: 120px;
   /* border-bottom: 1px solid rgb(175, 175, 175); */
   padding-bottom: 4px;
-
-
 }
 
 /* New styles for optimized stock update UI */
@@ -189,11 +194,11 @@
     font-size: 20px !important;
     height: 45px !important;
   }
-  
+
   .quick-update-buttons {
     flex-wrap: wrap;
   }
-  
+
   .quick-update-btn {
     flex: 1 1 calc(33.333% - 10px);
     text-align: center;

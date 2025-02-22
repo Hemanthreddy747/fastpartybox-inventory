@@ -480,7 +480,7 @@ const More = () => {
             />
           </Form.Group>
 
-          <Form.Group className="mb-3">
+          {/* <Form.Group className="mb-3">
             <Form.Label>Display Name</Form.Label>
             <Form.Control
               type="text"
@@ -491,7 +491,7 @@ const More = () => {
               })}
               placeholder="Enter display name"
             />
-          </Form.Group>
+          </Form.Group> */}
 
           <Form.Group className="mb-3">
             <Form.Label>Phone Number</Form.Label>

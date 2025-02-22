@@ -58,6 +58,7 @@ const Home = () => {
     cancelledOrders: 0,
     returnRate: 0,
   });
+  const [businessName, setBusinessName] = useState("");
 
   const ordersPerPage = 10;
 
@@ -119,11 +120,21 @@ const Home = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserUID(user.uid);
         loadAllOrders(user.uid);
         checkLowStockProducts(user.uid);
+        
+        // Add this to fetch business name
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            setBusinessName(userDoc.data().businessName || "");
+          }
+        } catch (error) {
+          console.error("Error fetching business name:", error);
+        }
       }
     });
     return () => unsubscribe();
@@ -721,6 +732,13 @@ const Home = () => {
       {loading && <LoaderC />}
 
       <div className="billing-history-container">
+        {/* Add this at the top */}
+        {businessName && (
+          <div className="business-header">
+            <h2>{businessName}</h2>
+          </div>
+        )}
+
         <div className="summary-metrics">
           <div className="metric-card">
             <div className="metric-value">₹{stats.todaysSales.toFixed(2)}</div>
@@ -745,7 +763,7 @@ const Home = () => {
               <div>
                 <i className="fas fa-exclamation-triangle alert-icon"></i>
                 <span>
-                  {lowStockProducts.length} products below minimum stock level
+                  {lowStockProducts.length} Products are running low on stock
                 </span>
               </div>
               <Button
@@ -853,13 +871,15 @@ const Home = () => {
           )}
 
           <div className="download-options">
-            <Button
-              variant="success"
-              className="download-button"
+            <div
+              // variant="success"
+              // className="download-button"
+              type="button"
+              className="btn btn-outline-secondary"
               onClick={() => downloadSalesData("xlsx")}
             >
               <i className="fas fa-file-excel"></i> Download all sales data
-            </Button>
+            </div>
             {/* <Button
               variant="info"
               className="download-button"

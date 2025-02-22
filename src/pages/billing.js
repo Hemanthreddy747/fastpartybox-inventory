@@ -577,7 +577,7 @@ const Billing = () => {
                 {product.stockQty <= 0 && (
                   <div className="out-of-stock-badge">Out of Stock</div>
                 )}
-                {getQuantityInCart(product.id) > 0 && (
+                {getQuantityInCart(product.id) > 0 ? (
                   <>
                     <div className="product-quantity-badge">
                       {getQuantityInCart(product.id)}
@@ -592,6 +592,8 @@ const Billing = () => {
                       -
                     </button>
                   </>
+                ) : (
+                  product.stockQty > 0 && <div className="product-plus-indicator">+</div>
                 )}
                 <div className="details">
                   <div className="p-2">
@@ -601,9 +603,7 @@ const Billing = () => {
                     <p>
                       Qty: <span>{product.stockQty}</span>
                     </p>
-
                     <p className="">MRP: ₹{product.mrp}</p>
-                    {/* <p>Price: ₹{product.retailPrice}</p> */}
                   </div>
                 </div>
               </div>
@@ -817,15 +817,15 @@ const Billing = () => {
         </Modal.Footer>
       </Modal>
       <div className="sync-status-indicator">
-        {syncStatus === "pending" && (
+        {/* {syncStatus === "pending" && (
           <span className="text-warning">
             {pendingOrders.length} pending sync
           </span>
-        )}
+        )} */}
         {syncStatus === "error" && (
           <span className="text-danger">❌ Sync error</span>
         )}
-        {syncStatus === "synced" && <span className="text-success">✓</span>}
+        {/* {syncStatus === "synced" && <span className="text-success">✓</span>} */}
       </div>
     </BillingErrorBoundary>
   );
