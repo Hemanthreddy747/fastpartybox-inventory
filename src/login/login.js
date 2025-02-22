@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./login.css";
-import logo from "../assets/images/company-logo.jpg"; // Adjust the path as necessary
+import logo from "../assets/images/company-logo.png"; // Adjust the path as necessary
 import googlelogo from "../assets/images/googlelogo.svg"; // Adjust the path as necessary
 import LoaderC from "../utills/loaderC";
 import { BiRefresh } from "react-icons/bi";
@@ -214,7 +214,7 @@ const Login = () => {
                 {formType === "forgotPassword" && "Reset Password"}
               </h3>
               {formType === "login" && (
-                <form className="form" onSubmit={handleLogin}>
+                <form className="form gap-2" onSubmit={handleLogin}>
                   <input
                     type="email"
                     placeholder="Email"
@@ -267,7 +267,7 @@ const Login = () => {
                 </form>
               )}
               {formType === "signup" && (
-                <form className="form" onSubmit={handleSignup}>
+                <form className="form gap-2" onSubmit={handleSignup}>
                   <input
                     type="email"
                     placeholder="Email"
@@ -314,7 +314,7 @@ const Login = () => {
                 </form>
               )}
               {formType === "forgotPassword" && (
-                <form className="form" onSubmit={handleResetPassword}>
+                <form className="form gap-2" onSubmit={handleResetPassword}>
                   <input
                     type="email"
                     placeholder="Enter your email"

@@ -23,10 +23,10 @@
 }
 
 .card {
-  background: white;
+  background: var(--white);
   padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
   max-width: 400px;
   width: 100%;
   animation: fadeIn var(--transition-duration) ease-in-out;
@@ -75,17 +75,18 @@
 }
 
 .input {
+  border: 1px solid var(--input-border);
+  background-color: var(--input-background);
+  color: var(--input-text);
   padding: 0.75rem;
-  margin-bottom: 1rem;
-  border: 1px solid #ddd;
   border-radius: var(--border-radius);
-  transition: border-color var(--transition-duration),
-    box-shadow var(--transition-duration);
+  width: 100%;
+  transition: all var(--transition-duration);
 }
 
 .input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 5px rgba(97, 107, 255, 0.5);
+  box-shadow: 0 0 0 0.2rem var(--input-focus-shadow);
   outline: none;
 }
 
@@ -98,7 +99,7 @@
     var(--gradient-start),
     var(--gradient-end)
   );
-  color: white;
+  color: var(--white);
   cursor: pointer;
   transition: background var(--transition-duration),
     transform var(--transition-duration);
@@ -149,11 +150,11 @@
 }
 
 .alert-error {
-  background: #dc3545;
+  background: var(--danger);
 }
 
 .alert-success {
-  background: #28a745;
+  background: var(--success);
 }
 
 .captcha {

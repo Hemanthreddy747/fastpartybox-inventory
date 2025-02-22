@@ -1,8 +1,79 @@
 :root {
-  --primary-color: #ce2fee; /* Change from #ff6f61 to blue */
-  --secondary-color: #6a1b9a; /* Purple */
+  /* Primary Colors */
+  --primary-color: #ce2fee;
+  --primary-light: #e265f3;
+  --primary-dark: #9b23b7;
+  
+  /* Secondary Colors */
+  --secondary-color: #6a1b9a;
+  --secondary-light: #8e24cc;
+  --secondary-dark: #4a148c;
+  
+  /* Gradient Colors */
   --gradient-start: #eb2412;
   --gradient-end: #9212e2;
+  
+  /* Neutral Colors */
+  --white: #ffffff;
+  --black: #000000;
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+  
+  /* Status Colors */
+  --success: #28a745;
+  --success-light: #34ce57;
+  --success-dark: #1e7e34;
+  --danger: #dc3545;
+  --danger-light: #e4606d;
+  --danger-dark: #bd2130;
+  --warning: #ffc107;
+  --warning-light: #ffcd39;
+  --warning-dark: #d39e00;
+  --info: #17a2b8;
+  --info-light: #1fc8e3;
+  --info-dark: #117a8b;
+  
+  /* Functional Colors */
+  --background-color: var(--white);
+  --text-color: var(--gray-900);
+  --link-color: var(--primary-color);
+  --link-hover-color: var(--primary-dark);
+  --border-color: var(--gray-300);
+  --box-shadow-color: rgba(0, 0, 0, 0.1);
+  
+  /* Additional Functional Colors */
+  --overlay-background: rgba(0, 0, 0, 0.68);
+  --shadow-light: rgba(0, 0, 0, 0.05);
+  --shadow-medium: rgba(0, 0, 0, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.2);
+  
+  /* Gradient Overlays */
+  --gradient-overlay-light: rgba(255, 255, 255, 0.2);
+  --gradient-overlay-medium: rgba(255, 255, 255, 0.4);
+  
+  /* Input States */
+  --input-focus-shadow: rgba(206, 47, 238, 0.25);
+  --input-background: var(--white);
+  --input-border: var(--gray-300);
+  --input-text: var(--gray-900);
+  
+  /* Button States */
+  --button-hover-transform: translateY(-2px);
+  --button-active-transform: translateY(1px);
+  
+  /* Card Effects */
+  --card-hover-transform: translateY(-5px);
+  --card-shadow: 0 10px 30px var(--shadow-light);
+  --card-hover-shadow: 0 15px 40px var(--shadow-medium);
+  
+  /* Keep existing non-color variables */
   --font-size-base: 16px;
   --font-size-large: 1.5rem;
   --font-size-medium: 1.25rem;
@@ -11,13 +82,7 @@
   --font-weight-bold: 700;
   --border-radius: 10px;
   --transition-duration: 0.3s;
-
-  /* Additional standard values */
-  --background-color: #ffffff; /* White */
-  --text-color: #333333; /* Dark Gray */
-  --link-color: #1e90ff; /* Dodger Blue */
-  --link-hover-color: #ff4500; /* Orange Red */
-  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --box-shadow: 0 4px 6px var(--box-shadow-color);
   --max-width: 1200px;
   --padding-base: 1rem;
   --margin-base: 1rem;
@@ -41,16 +106,7 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* display: flex; */
-  /* justify-content: center;
-  align-items: center; */
-  /* height: 100; */
-  /* background-color: linear-gradient(
-    135deg,
-    var(--gradient-start),
-    var(--gradient-end)
-  ); */
-  background-color: blue;
+  background-color: var(--background-color); /* Changed from blue */
   /* background-repeat: no-repeat; */
   /* height: 100%; */
 }

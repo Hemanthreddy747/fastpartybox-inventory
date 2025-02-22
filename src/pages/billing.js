@@ -593,7 +593,9 @@ const Billing = () => {
                     </button>
                   </>
                 ) : (
-                  product.stockQty > 0 && <div className="product-plus-indicator">+</div>
+                  product.stockQty > 0 && (
+                    <div className="product-plus-indicator">+</div>
+                  )
                 )}
                 <div className="details">
                   <div className="p-2">
@@ -614,8 +616,7 @@ const Billing = () => {
               className="floating-cart"
               onClick={() => setShowCartModal(true)}
             >
-              {/* <i className="fas fa-shopping-cart"></i> */}
-              <div className="cart-total">₹ {calculateTotal()}</div>
+              <div className="cart-total">₹{calculateTotal()}</div>
               <div className="cart-counter">
                 {cart.reduce((sum, item) => sum + item.quantity, 0)}
               </div>

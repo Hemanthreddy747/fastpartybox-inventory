@@ -2,7 +2,7 @@
   max-width: 100%;
   padding: 16px;
   margin: 0;
-  background: #f8f9fa;
+  background: var(--gray-100);
 }
 
 
@@ -12,20 +12,19 @@
 }
 
 .alert-card {
-  background: #fff;
+  background: var(--white);
   border-radius: 12px;
   padding: 12px;
   margin-bottom: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--box-shadow);
 }
 
-.alert-card.critical {
-  background: linear-gradient(135deg, #fff5f5, #ffe3e3);
-  border-left: none;
-}
+/* .alert-card.critical {
+  background: linear-gradient(135deg, var(--danger-light), var(--danger));
+} */
 
 .alert-icon {
   font-size: 18px;
@@ -64,7 +63,7 @@
 }
 
 .metric-label {
-  color: #6c757d;
+  color: var(--gray-600);
   font-size: 10px;
   line-height: 1;
   margin-top: 2px;
@@ -94,18 +93,18 @@
 }
 
 .badge.synced {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
+  color: var(--white);
 }
 
 .badge.pending {
-  background: linear-gradient(135deg, #ffc107, #ffb300);
-  color: #000;
+  background: linear-gradient(135deg, var(--warning), var(--warning-dark));
+  color: var(--black);
 }
 
 .badge.error {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
+  background: linear-gradient(135deg, var(--danger), var(--danger-dark));
+  color: var(--white);
 }
 
 /* Date Filter Container */

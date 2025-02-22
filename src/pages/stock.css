@@ -85,13 +85,34 @@
   width: 100%;
 } */
 
-.details {
+/* .details {
   height: 100%;
   color: white;
-  background-color: rgba(58, 62, 70, 0.68);
+  background-color: rgba(58, 62, 70, 0.4);
   width: 100%;
   display: flex;
   align-items: flex-end;
+} */
+
+.details {
+  height: 100%;
+  color: white;
+  background: 
+    rgba(0, 0, 0, 0.3);
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  text-shadow:5px 5px 5px rgba(0, 0, 0, .7);
+  /* transition: background 0.3s ease; */
+}
+
+.details:hover {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0.6) 60%,
+    rgba(0, 0, 0, 0.8)
+  );
 }
 .productnameoncard {
   max-height: 120px;
