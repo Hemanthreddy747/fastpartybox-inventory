@@ -40,8 +40,7 @@
   cursor: pointer;
 }
 
-.archived-badge{
-  background-color: #dc3545;
+.out-of-stock-badge, .archived-badge {
   color: white;
   padding: 2px 6px;
   border-radius: 4px;
@@ -50,6 +49,27 @@
   top: 5px;
   right: 5px;
 }
+
+.out-of-stock-badge {
+  background-color: #dc3545;
+}
+
+.archived-badge {
+  background-color: #6c757d;
+}
+
+/* .product-card.out-of-stock {
+  opacity: 0.7;
+}
+
+.product-card.archived {
+  opacity: 0.7;
+}
+
+.product-card.out-of-stock:hover,
+.product-card.archived:hover {
+  cursor: not-allowed;
+} */
 /*
 .details {
   height: 100%;

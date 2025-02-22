@@ -433,8 +433,10 @@ const Stock = () => {
   };
 
   const handleAddNewClick = () => {
-    resetForm();
-    setShowAddModal(true);
+    resetForm(); // Reset the form data
+    setCurrentProductId(null); // Ensure we're not in edit mode
+    setShowAddModal(true); // Show the Add Product modal
+    setShowEditModal(false); // Ensure Edit modal is closed
   };
 
   const openEditModal = (product) => {
@@ -693,12 +695,15 @@ const Stock = () => {
           </Button>
         </div>
         {/* Add Product Modal */}
-        <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+        <Modal show={showAddModal} onHide={() => {
+          setShowAddModal(false);
+          resetForm();
+        }}>
           <Modal.Header closeButton>
-            <Modal.Title>{isEdit ? "Edit Product" : "Add Product"}</Modal.Title>
+            <Modal.Title>Add New Product</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <Form onSubmit={isEdit ? handleEditProduct : handleAddProduct}>
+            <Form onSubmit={handleAddProduct}>
               <Row>
                 {Object.entries(formFields).map(([key, field]) => (
                   <Col xs={6} key={key} className="mt-3">
@@ -733,13 +738,13 @@ const Stock = () => {
                         })
                       }
                       accept="image/*"
-                      required={!isEdit}
+                      required={true}
                     />
                   </Form.Group>
                 </Col>
               </Row>
               <Button variant="primary" type="submit" className="mt-3">
-                {isEdit ? "Update Product" : "Add Product"}
+                Add Product
               </Button>
               <Button
                 variant="secondary"
@@ -1052,50 +1057,26 @@ const Stock = () => {
         </Modal>
         {/* Active Products Grid */}
         <div className="product-flex-container m-1">
-          {activeProducts.length > 0 ? (
-            activeProducts.map((product) => (
-              <div
-                className="product-card"
-                key={product.id}
-                style={{ backgroundImage: `url(${product.productImage})` }}
-                onClick={() => openEditModal(product)}
-              >
-                <div className="details">
-                  <div className="p-2">
-                    <p>
-                      <span>{product.productName}</span>
-                    </p>
-                    <p>
-                      Qty: <span>{product.stockQty}</span>
-                    </p>
-
-                    <p className="">MRP: {product.mrp}</p>
-                    <p>Bulk Price: {product.wholesalePrice}</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
+          {activeProducts.map((product) => (
             <div
-              className="product-card"
-              style={{
-                backgroundImage: `url('https://img.freepik.com/free-photo/vertical-banners-sales_23-2150629840.jpg')`,
-              }}
+              className={`product-card ${product.stockQty <= 0 ? "out-of-stock" : ""}`}
+              key={product.id}
+              style={{ backgroundImage: `url(${product.productImage})` }}
+              onClick={() => openEditModal(product)}
             >
+              {product.stockQty <= 0 && (
+                <div className="out-of-stock-badge">Out of Stock</div>
+              )}
               <div className="details">
                 <div className="p-2">
-                  <p>
-                    Qty: <span>99</span>
-                  </p>
-                  <p>
-                    <span>Sample Product name</span>
-                  </p>
-                  <p className="mt-4">MRP: 9.99</p>
-                  <p>Bulk Price: 9.99</p>
+                  <p><span>{product.productName}</span></p>
+                  <p>Qty: <span>{product.stockQty}</span></p>
+                  <p className="">MRP: {product.mrp}</p>
+                  <p>Bulk Price: {product.wholesalePrice}</p>
                 </div>
               </div>
             </div>
-          )}
+          ))}
         </div>
         {/* Archived Products Grid */}
         {archivedProducts.length > 0 && (
@@ -1107,17 +1088,13 @@ const Stock = () => {
                 style={{ backgroundImage: `url(${product.productImage})` }}
                 onClick={() => openEditModal(product)}
               >
+                <div className="archived-badge">Archived</div>
                 <div className="details">
                   <div className="p-2">
-                    <div className="archived-badge">Archived</div>
-                    <p>
-                      QTY: <span>{product.stockQty}</span>
-                    </p>
-                    <p>
-                      <span>{product.productName}</span>
-                    </p>
-                    <p className="mt-4">MRP: {product.mrp}</p>
-                    <p>Wholesale Price: {product.wholesalePrice}</p>
+                    <p><span>{product.productName}</span></p>
+                    <p>Qty: <span>{product.stockQty}</span></p>
+                    <p className="">MRP: {product.mrp}</p>
+                    <p>Bulk Price: {product.wholesalePrice}</p>
                   </div>
                 </div>
               </div>

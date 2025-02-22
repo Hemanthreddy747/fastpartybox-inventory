@@ -271,13 +271,7 @@
   gap: 5px;
 }
 
-.product-card.out-of-stock {
-  opacity: 0.6;
-  position: relative;
-}
-
-.product-card.out-of-stock::after {
-  content: "Out of Stock";
+.out-of-stock-badge {
   background-color: #dc3545;
   color: white;
   padding: 2px 6px;
@@ -287,3 +281,11 @@
   top: 5px;
   right: 5px;
 }
+
+/* .product-card.out-of-stock {
+  opacity: 0.7;
+} */
+
+/* .product-card.out-of-stock:hover {
+  cursor: not-allowed;
+} */

@@ -574,6 +574,9 @@ const Billing = () => {
                 }}
                 onClick={() => product.stockQty > 0 && addToCart(product)}
               >
+                {product.stockQty <= 0 && (
+                  <div className="out-of-stock-badge">Out of Stock</div>
+                )}
                 {getQuantityInCart(product.id) > 0 && (
                   <>
                     <div className="product-quantity-badge">
@@ -624,7 +627,7 @@ const Billing = () => {
       {/* Cart Modal */}
       <Modal show={showCartModal} onHide={() => setShowCartModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Shopping Cart</Modal.Title>
+          <Modal.Title>Cart</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className="d-flex justify-content-between align-items-center mt-2 mb-3">
@@ -638,7 +641,7 @@ const Billing = () => {
                 }}
                 className="cancel-all-button"
               >
-                Cancel All
+                Cancel Bill
               </Button>
               <Button
                 variant="primary"
@@ -652,7 +655,7 @@ const Billing = () => {
             </div>
           </div>
           {/* Cart Modal Table */}
-          <Table striped bordered hover className="m-0">
+          <Table striped bordered hover className="m-0 align-middle">
             <thead>
               <tr>
                 <th>Product</th>
@@ -753,7 +756,7 @@ const Billing = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3 mt-3">
               <Form.Label>Customer Name*</Form.Label>
               <Form.Control
                 type="text"
