@@ -45,10 +45,19 @@ export class SecurityService {
   
   static validateProductData(product) {
     return {
-      name: validateInput(product.name, 'text'),
-      price: validateInput(product.price, 'number'),
-      stock: validateInput(product.stock, 'number'),
-      description: validateInput(product.description, 'text')
+      productName: validateInput(product.productName, 'text', true),
+      productDesc: validateInput(product.productDesc, 'text', false),
+      brand: validateInput(product.brand, 'text', false),
+      category: validateInput(product.category, 'text', false),
+      purchasePrice: validateInput(product.purchasePrice, 'number', true),
+      mrp: validateInput(product.mrp, 'number', true),
+      retailPrice: validateInput(product.retailPrice, 'number', true),
+      wholesalePrice: validateInput(product.wholesalePrice, 'number', true),
+      stockQty: validateInput(product.stockQty, 'integer', true),
+      minStock: validateInput(product.minStock, 'integer', true),
+      offerValue: validateInput(product.offerValue, 'text', false),
+      rank: validateInput(product.rank, 'text', false),
+      archived: validateInput(product.archived, 'boolean', true)
     };
   }
   

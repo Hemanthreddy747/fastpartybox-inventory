@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button, Modal, Form, Row, Col } from "react-bootstrap";
 import { db } from "../firebase/firebase";
 import { ToastContainer, toast } from "react-toastify";
+import FormLabel from "../components/FormLabel";
 import {
   collection,
   getDocs,
@@ -42,18 +43,20 @@ const Stock = () => {
     productDesc: "",
     brand: "",
     category: "",
-    bulkPrice: "",
+    purchasePrice: "",
+    mrp: "",
     retailPrice: "",
     wholesalePrice: "",
     stockQty: "",
     minStock: "",
     offerValue: "",
     rank: "",
-    purchasePrice: "",
-    mrp: "",
     archived: false,
     productImage: null,
   });
+
+  // Add this to determine if we're in edit mode
+  const isEdit = Boolean(currentProductId);
 
   // ============= NOTIFICATION HELPERS =============
   const notifyError = (message) => toast.error(message);
@@ -127,6 +130,27 @@ const Stock = () => {
   };
 
   // ============= PRODUCT OPERATIONS =============
+  const prepareProductData = (data, productId) => {
+    return {
+      productName: data.productName,
+      productDesc: data.productDesc || "",
+      brand: data.brand || "",
+      category: data.category || "",
+      purchasePrice: parseFloat(data.purchasePrice) || 0,
+      mrp: parseFloat(data.mrp) || 0,
+      retailPrice: parseFloat(data.retailPrice) || 0,
+      wholesalePrice: parseFloat(data.wholesalePrice) || 0,
+      stockQty: parseInt(data.stockQty) || 0,
+      minStock: parseInt(data.minStock) || 0,
+      offerValue: data.offerValue || "",
+      rank: data.rank || "",
+      productId,
+      archived: false,
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    };
+  };
+
   const handleAddProduct = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -134,15 +158,21 @@ const Stock = () => {
     try {
       if (!userUID) return;
 
-      // Check subscription limits before adding
-      const canAddProduct = await SubscriptionService.checkLimit(userUID, 'products');
+      const canAddProduct = await SubscriptionService.checkLimit(
+        userUID,
+        "products"
+      );
       if (!canAddProduct) {
-        toast.error("You've reached your product limit. Please upgrade your subscription.");
+        toast.error(
+          "You've reached your product limit. Please upgrade your subscription."
+        );
         return;
       }
 
-      const batch = writeBatch(db);
       const productId = generateRandomCode(8);
+      const newProduct = prepareProductData(formData, productId);
+
+      const batch = writeBatch(db);
 
       const options = {
         maxSizeMB: 0.5,
@@ -157,14 +187,6 @@ const Stock = () => {
       const base64Image = await imageCompression.getDataUrlFromFile(
         compressedFile
       );
-
-      const newProduct = {
-        ...formData,
-        productId,
-        archived: false,
-        createdAt: serverTimestamp(),
-      };
-      delete newProduct.productImage;
 
       const productRef = doc(collection(db, "users", userUID, "products"));
       const imageRef = doc(db, "users", userUID, "productImages", productId);
@@ -204,19 +226,32 @@ const Stock = () => {
     setLoading(true);
 
     try {
-      const validationErrors = validateForm(formData);
-      if (validationErrors.length > 0) {
-        validationErrors.forEach(error => toast.error(error));
-        return;
-      }
-
       if (!userUID) return;
 
-      const batch = writeBatch(db);
+      // Create a copy of formData and handle empty numeric fields
       let updatedData = { ...formData };
+
+      // Define required numeric fields
+      const requiredNumericFields = [
+        "purchasePrice",
+        "mrp",
+        "retailPrice",
+        "wholesalePrice",
+        "stockQty",
+        "minStock",
+      ];
+
+      // Set empty numeric fields to 0
+      requiredNumericFields.forEach((field) => {
+        if (!updatedData[field] || updatedData[field] === "") {
+          updatedData[field] = "0";
+        }
+      });
+
+      // Remove productImage from update data
       delete updatedData.productImage;
 
-      // Remove empty fields
+      // Remove truly empty fields (non-numeric optional fields)
       Object.keys(updatedData).forEach((key) => {
         if (updatedData[key] === undefined || updatedData[key] === "") {
           delete updatedData[key];
@@ -232,6 +267,8 @@ const Stock = () => {
         "products",
         currentProductId
       );
+
+      const batch = writeBatch(db);
       batch.set(productRef, updatedData, { merge: true });
 
       if (formData.productImage && typeof formData.productImage !== "string") {
@@ -276,9 +313,10 @@ const Stock = () => {
 
       await batch.commit();
       notifySuccess("Product updated successfully");
-      resetForm();
       await fetchProducts(userUID);
+      setShowEditModal(false);
     } catch (error) {
+      console.error("Edit product error:", error);
       notifyError("Error updating product");
     } finally {
       setLoading(false);
@@ -371,7 +409,27 @@ const Stock = () => {
   // ============= FORM HANDLING =============
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+
+    if (name === "stockQty") {
+      // Convert to number and check constraints
+      let numValue = parseInt(value) || 0;
+
+      // Enforce limits
+      if (numValue < 0) numValue = 0;
+      if (numValue > 10000000) numValue = 10000000;
+
+      setFormData((prev) => ({
+        ...prev,
+        [name]: numValue.toString(),
+      }));
+      return;
+    }
+
+    // Handle other fields normally
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleAddNewClick = () => {
@@ -394,19 +452,17 @@ const Stock = () => {
       productDesc: "",
       brand: "",
       category: "",
-      bulkPrice: "",
-      retailPrice: "",
-      wholesalePrice: "",
-      stockQty: "",
-      minStock: "",
-      offerValue: "",
-      rank: "",
       purchasePrice: "",
       mrp: "",
+      retailPrice: "",
+      wholesalePrice: "",
+      offerValue: "",
+      minStock: "",
+      rank: "",
+      stockQty: "",
       archived: false,
       productImage: null,
     });
-
     setShowAddModal(false);
     setShowEditModal(false);
   };
@@ -422,13 +478,41 @@ const Stock = () => {
 
   const validateForm = (data) => {
     const errors = [];
-    
-    if (!data.productName?.trim()) errors.push("Product name is required");
-    if (isNaN(data.stockQty) || data.stockQty < 0) errors.push("Invalid stock quantity");
-    if (isNaN(data.mrp) || data.mrp < 0) errors.push("Invalid MRP");
-    if (isNaN(data.wholesalePrice) || data.wholesalePrice < 0) errors.push("Invalid wholesale price");
-    if (data.wholesalePrice > data.mrp) errors.push("Wholesale price cannot be greater than MRP");
-    
+
+    if (!data.productName?.trim()) errors.push("Product Name is required");
+    if (
+      isNaN(parseFloat(data.purchasePrice)) ||
+      parseFloat(data.purchasePrice) < 0
+    )
+      errors.push("Invalid Bulk Purchase Price");
+    if (isNaN(parseFloat(data.mrp)) || parseFloat(data.mrp) < 0)
+      errors.push("Invalid MRP");
+    if (isNaN(parseFloat(data.retailPrice)) || parseFloat(data.retailPrice) < 0)
+      errors.push("Invalid Retail Selling Price");
+    if (
+      isNaN(parseFloat(data.wholesalePrice)) ||
+      parseFloat(data.wholesalePrice) < 0
+    )
+      errors.push("Invalid Wholesale Selling Price");
+    if (parseFloat(data.wholesalePrice) > parseFloat(data.mrp))
+      errors.push("Wholesale price cannot be greater than MRP");
+    if (isNaN(parseInt(data.stockQty)) || parseInt(data.stockQty) < 0)
+      errors.push("Invalid Stock Quantity");
+    if (isNaN(parseInt(data.minStock)) || parseInt(data.minStock) < 0)
+      errors.push("Invalid Min Stock Alert value");
+
+    // Stock Quantity validation
+    const stockQty = parseInt(data.stockQty) || 0;
+    if (isNaN(stockQty)) {
+      errors.push("Stock Quantity must be a number");
+    } else if (stockQty < 0) {
+      errors.push("Stock Quantity cannot be negative");
+    } else if (stockQty > 10000000) {
+      errors.push("Stock Quantity cannot exceed 10,000,000");
+    } else if (!Number.isInteger(stockQty)) {
+      errors.push("Stock Quantity must be a whole number");
+    }
+
     return errors;
   };
 
@@ -439,7 +523,7 @@ const Stock = () => {
   // Add these functions to your Stock component
   const handleQuickUpdate = (amount) => {
     const currentQty = parseInt(formData.stockQty) || 0;
-    const newQty = Math.max(0, currentQty + amount);
+    const newQty = Math.min(10000000, Math.max(0, currentQty + amount));
     setFormData({
       ...formData,
       stockQty: newQty.toString(),
@@ -460,18 +544,29 @@ const Stock = () => {
 
       // Store update in local storage if offline
       if (!navigator.onLine) {
-        const pendingUpdates = JSON.parse(localStorage.getItem('pendingProductUpdates') || '[]');
+        const pendingUpdates = JSON.parse(
+          localStorage.getItem("pendingProductUpdates") || "[]"
+        );
         pendingUpdates.push({
           productId: currentProductId,
           data: updateData,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
-        localStorage.setItem('pendingProductUpdates', JSON.stringify(pendingUpdates));
+        localStorage.setItem(
+          "pendingProductUpdates",
+          JSON.stringify(pendingUpdates)
+        );
         toast.info("Update stored offline. Will sync when online");
         return;
       }
 
-      const productRef = doc(db, "users", userUID, "products", currentProductId);
+      const productRef = doc(
+        db,
+        "users",
+        userUID,
+        "products",
+        currentProductId
+      );
       await updateDoc(productRef, {
         ...updateData,
         updatedAt: serverTimestamp(),
@@ -487,11 +582,94 @@ const Stock = () => {
     }
   };
 
+  const formFields = {
+    productName: {
+      label: "Product Name ", // Added star
+      type: "text",
+      required: true,
+      maxLength: 100,
+    },
+    productDesc: {
+      label: "Description",
+      type: "text",
+      required: false,
+    },
+    brand: {
+      label: "Brand Name",
+      type: "text",
+      required: false,
+    },
+    category: {
+      label: "Category",
+      type: "text",
+      required: false,
+    },
+    purchasePrice: {
+      label: "My Bulk Purchase Price ", // Added star
+      type: "number",
+      required: true,
+      min: 0,
+      step: "0.01",
+    },
+    mrp: {
+      label: "MRP ", // Added star
+      type: "number",
+      required: true,
+      min: 0,
+      step: "0.01",
+    },
+    retailPrice: {
+      label: "Retail Selling Price ", // Added star
+      type: "number",
+      required: true,
+      min: 0,
+      step: "0.01",
+    },
+    wholesalePrice: {
+      label: "Wholesale Selling Price ", // Added star
+      type: "number",
+      required: true,
+      min: 0,
+      step: "0.01",
+    },
+    stockQty: {
+      label: "Stock Quantity ", // Added star
+      type: "number",
+      required: true,
+      min: 0,
+      step: "1",
+    },
+    minStock: {
+      label: "Min Stock Alert at ", // Added star
+      type: "number",
+      required: true,
+      min: 0,
+      step: "1",
+    },
+    offerValue: {
+      label: "Offer Value",
+      type: "text",
+      required: false,
+      maxLength: 50,
+    },
+    rank: {
+      label: "Rank value for Sorting",
+      type: "number",
+      required: false,
+      step: "1",
+    },
+  };
+
   return (
     <>
       {loading && <LoaderC />}
       <div>
-        <ToastContainer />
+        <ToastContainer
+          position="bottom-left"
+          autoClose={3000}
+          limit={3}
+          theme="colored"
+        />
         {/* Search and Add New Section */}
         <div className="d-flex justify-content-between mb-2 mt-2 ms-1 me-1 gap-1">
           <input
@@ -517,54 +695,51 @@ const Stock = () => {
         {/* Add Product Modal */}
         <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
           <Modal.Header closeButton>
-            <Modal.Title>Add Product</Modal.Title>
+            <Modal.Title>{isEdit ? "Edit Product" : "Add Product"}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <Form onSubmit={handleAddProduct}>
+            <Form onSubmit={isEdit ? handleEditProduct : handleAddProduct}>
               <Row>
-                {Object.keys(formData).map((key) =>
-                  key !== "productImage" && key !== "archived" ? (
-                    <Col xs={6} key={key}>
-                      <Form.Group controlId={`form${key}`}>
-                        <Form.Label>
-                          {key
-                            .replace(/([A-Z])/g, " $1")
-                            .replace(/^./, (str) => str.toUpperCase())}
-                        </Form.Label>
-                        <Form.Control
-                          type={
-                            key.includes("Price") || key.includes("Qty")
-                              ? "number"
-                              : "text"
-                          }
-                          name={key}
-                          value={formData[key]}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  ) : key === "productImage" ? (
-                    <Col xs={12} key={key}>
-                      <Form.Group controlId={`form${key}`}>
-                        <Form.Label>Product Image</Form.Label>
-                        <Form.Control
-                          type="file"
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              productImage: e.target.files[0],
-                            })
-                          }
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  ) : null
-                )}
+                {Object.entries(formFields).map(([key, field]) => (
+                  <Col xs={6} key={key} className="mt-3">
+                    <Form.Group controlId={`form${key}`}>
+                      <FormLabel required={field.required}>
+                        {field.label}
+                      </FormLabel>
+                      <Form.Control
+                        type={field.type}
+                        name={key}
+                        value={formData[key]}
+                        onChange={handleInputChange}
+                        required={field.required}
+                        min={field.min}
+                        step={field.step}
+                        maxLength={field.maxLength}
+                      />
+                    </Form.Group>
+                  </Col>
+                ))}
+
+                {/* Product Image Field */}
+                <Col xs={12} className="mt-3">
+                  <Form.Group controlId="formProductImage">
+                    <Form.Label>Product Image</Form.Label>
+                    <Form.Control
+                      type="file"
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          productImage: e.target.files[0],
+                        })
+                      }
+                      accept="image/*"
+                      required={!isEdit}
+                    />
+                  </Form.Group>
+                </Col>
               </Row>
               <Button variant="primary" type="submit" className="mt-3">
-                Add Product
+                {isEdit ? "Update Product" : "Add Product"}
               </Button>
               <Button
                 variant="secondary"
@@ -592,7 +767,7 @@ const Stock = () => {
         {/* Edit Product Modal */}
         <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
           <Modal.Header closeButton>
-            <Modal.Title>Update Stock - {formData.productName}</Modal.Title>
+            <Modal.Title>Update - ( {formData.productName} )</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={handleEditProduct}>
@@ -607,10 +782,12 @@ const Stock = () => {
                       <Form.Control
                         type="number"
                         name="stockQty"
-                        value={formData.stockQty || ""}
+                        value={formData.stockQty || "0"}
                         onChange={handleInputChange}
                         className="stock-qty-input"
                         required
+                        min="0"
+                        max="10000000"
                         autoFocus
                       />
                     </Form.Group>
@@ -669,11 +846,11 @@ const Stock = () => {
               {/* Other Fields Section */}
               <div className="form-section-divider"></div>
               <div className="other-fields-section">
-                <Row>
+                <Row className="gy-3">
                   {/* Your existing form fields */}
                   <Col xs={6}>
                     <Form.Group controlId="formProductName">
-                      <Form.Label>Product Name</Form.Label>
+                      <Form.Label>Product Name *</Form.Label>
                       <Form.Control
                         type="text"
                         name="productName"
@@ -685,7 +862,7 @@ const Stock = () => {
                   </Col>
                   <Col xs={6}>
                     <Form.Group controlId="formProductDesc">
-                      <Form.Label>Product Desc</Form.Label>
+                      <Form.Label>Description</Form.Label>
                       <Form.Control
                         type="text"
                         name="productDesc"
@@ -697,7 +874,7 @@ const Stock = () => {
                   </Col>
                   <Col xs={6}>
                     <Form.Group controlId="formBrand">
-                      <Form.Label>Brand</Form.Label>
+                      <Form.Label>Brand Name</Form.Label>
                       <Form.Control
                         type="text"
                         name="brand"
@@ -719,9 +896,34 @@ const Stock = () => {
                       />
                     </Form.Group>
                   </Col>
+                  <hr className="mb-0 pb-0"></hr>
                   <Col xs={6}>
+                    <Form.Group controlId="formPurchasePrice">
+                      <Form.Label>My Bulk Purchase Price</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="purchasePrice"
+                        value={formData.purchasePrice || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group controlId="formMrp">
+                      <Form.Label>MRP</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="mrp"
+                        value={formData.mrp || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  {/* <Col xs={6}>
                     <Form.Group controlId="formBulkPrice">
-                      <Form.Label>Bulk Price</Form.Label>
+                      <Form.Label>BulkPrice</Form.Label>
                       <Form.Control
                         type="number"
                         name="bulkPrice"
@@ -730,10 +932,10 @@ const Stock = () => {
                         required
                       />
                     </Form.Group>
-                  </Col>
+                  </Col> */}
                   <Col xs={6}>
                     <Form.Group controlId="formRetailPrice">
-                      <Form.Label>Retail Price</Form.Label>
+                      <Form.Label>Retail Selling Price</Form.Label>
                       <Form.Control
                         type="number"
                         name="retailPrice"
@@ -745,7 +947,7 @@ const Stock = () => {
                   </Col>
                   <Col xs={6}>
                     <Form.Group controlId="formWholesalePrice">
-                      <Form.Label>Wholesale Price</Form.Label>
+                      <Form.Label>Wholesale Selling Price</Form.Label>
                       <Form.Control
                         type="number"
                         name="wholesalePrice"
@@ -755,18 +957,7 @@ const Stock = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={6}>
-                    <Form.Group controlId="formMinStock">
-                      <Form.Label>Min Stock</Form.Label>
-                      <Form.Control
-                        type="number"
-                        name="minStock"
-                        value={formData.minStock || ""}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
+                  <hr className="mb-0 pb-0"></hr>
                   <Col xs={6}>
                     <Form.Group controlId="formOfferValue">
                       <Form.Label>Offer Value</Form.Label>
@@ -780,8 +971,21 @@ const Stock = () => {
                     </Form.Group>
                   </Col>
                   <Col xs={6}>
+                    <Form.Group controlId="formMinStock">
+                      <Form.Label>Min Stock Alert at</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="minStock"
+                        value={formData.minStock || ""}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={6}>
                     <Form.Group controlId="formRank">
-                      <Form.Label>Rank</Form.Label>
+                      <Form.Label>Rank value for Sorting</Form.Label>
                       <Form.Control
                         type="text"
                         name="rank"
@@ -791,30 +995,7 @@ const Stock = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={6}>
-                    <Form.Group controlId="formPurchasePrice">
-                      <Form.Label>Purchase Price</Form.Label>
-                      <Form.Control
-                        type="number"
-                        name="purchasePrice"
-                        value={formData.purchasePrice || ""}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={6}>
-                    <Form.Group controlId="formMrp">
-                      <Form.Label>Mrp</Form.Label>
-                      <Form.Control
-                        type="number"
-                        name="mrp"
-                        value={formData.mrp || ""}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
+
                   <Col xs={9}>
                     <Form.Group controlId="formProductImage">
                       <Form.Label>Product Image</Form.Label>
@@ -882,11 +1063,12 @@ const Stock = () => {
                 <div className="details">
                   <div className="p-2">
                     <p>
-                      Qty: <span>{product.stockQty}</span>
-                    </p>
-                    <p>
                       <span>{product.productName}</span>
                     </p>
+                    <p>
+                      Qty: <span>{product.stockQty}</span>
+                    </p>
+
                     <p className="">MRP: {product.mrp}</p>
                     <p>Bulk Price: {product.wholesalePrice}</p>
                   </div>

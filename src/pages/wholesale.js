@@ -28,7 +28,7 @@ const Wholesale = () => {
       const csvData = res.data.split("\n").map((row) => row.split(","));
       setData(csvData);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       setError("Error fetching data");
     }
   };

@@ -10,15 +10,7 @@ export class SubscriptionService {
       
       if (!userData) return "FREE";
 
-      const expiryDate = userData.subscriptionExpiry?.toDate?.() || new Date(userData.subscriptionExpiry);
-      const isExpired = expiryDate < new Date();
-
-      // If subscription is expired, revert to FREE tier
-      if (isExpired && userData.subscriptionTier !== "FREE") {
-        await this.revertToFreeTier(userId);
-        return "FREE";
-      }
-
+      // Remove expiry check since trial is unlimited
       return userData.subscriptionTier || "FREE";
     } catch (error) {
       console.error("Error getting user tier:", error);
@@ -40,14 +32,12 @@ export class SubscriptionService {
 
   static async initializeFreeTrial(userId) {
     const createdAt = new Date();
-    const expiryDate = new Date(createdAt);
-    expiryDate.setDate(expiryDate.getDate() + 90); // 90 days trial
-
+    
     await setDoc(doc(db, "users", userId), {
       subscriptionTier: "FREE",
       subscriptionStatus: "trial",
       createdAt: createdAt,
-      subscriptionExpiry: expiryDate,
+      subscriptionExpiry: null, // Remove expiry for free trial
       lastBillingDate: null,
       trialStartDate: createdAt
     }, { merge: true });

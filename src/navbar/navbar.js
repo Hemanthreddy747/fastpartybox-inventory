@@ -13,7 +13,6 @@ const Navbar = () => {
   }, [location]);
 
   const handleTabClick = (tabName) => {
-    // setActiveTab(tabName);
     navigate(`/${tabName}`);
   };
 
@@ -31,12 +30,12 @@ const Navbar = () => {
       >
         billing
       </div>
-      <div
+      {/* <div
         className={activeTab === "Wholesale" ? "active" : ""}
         onClick={() => handleTabClick("Wholesale")}
       >
         wholesale
-      </div>
+      </div> */}
       <div
         className={activeTab === "stock" ? "active" : ""}
         onClick={() => handleTabClick("stock")}
@@ -44,10 +43,10 @@ const Navbar = () => {
         stock
       </div>
       <div
-        className={activeTab === "more" ? "active" : ""}
-        onClick={() => handleTabClick("more")}
+        className={activeTab === "profile" ? "active" : ""}
+        onClick={() => handleTabClick("profile")}
       >
-        more
+        profile
       </div>
     </div>
   );

@@ -3,6 +3,22 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { toast } from "react-toastify";
 
+const notifyError = (message) => toast.error(message, {
+  position: "bottom-left"
+});
+
+const notifySuccess = (message) => toast.success(message, {
+  position: "bottom-left"
+});
+
+const notifyInfo = (message) => toast.info(message, {
+  position: "bottom-left"
+});
+
+const notifyWarning = (message) => toast.warning(message, {
+  position: "bottom-left"
+});
+
 export const initializeAuthListener = () => {
   const auth = getAuth();
   

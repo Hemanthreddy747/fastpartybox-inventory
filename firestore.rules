@@ -45,6 +45,38 @@ service cloud.firestore {
       return expiryDate > request.time;
     }
 
+    function isValidProduct(product) {
+      return product.size() <= 13 
+        && product.productName is string 
+        && product.productName.size() <= 100
+        && product.productName.size() > 0
+        && (product.productDesc == null || product.productDesc is string)
+        && (product.brand == null || product.brand is string)
+        && (product.category == null || product.category is string)
+        && product.purchasePrice is number 
+        && product.purchasePrice >= 0
+        && product.mrp is number 
+        && product.mrp >= product.purchasePrice
+        && product.retailPrice is number 
+        && product.retailPrice >= 0
+        && product.retailPrice <= product.mrp
+        && product.wholesalePrice is number 
+        && product.wholesalePrice >= 0
+        && product.wholesalePrice <= product.mrp
+        && product.wholesalePrice <= product.retailPrice
+        && product.stockQty is number 
+        && product.stockQty >= 0
+        && product.stockQty == product.stockQty.round()
+        && product.minStock is number 
+        && product.minStock >= 0
+        && product.minStock <= product.stockQty
+        && product.minStock == product.minStock.round()
+        && (product.offerValue == null || 
+            (product.offerValue is string && product.offerValue.size() <= 50))
+        && (product.rank == null || 
+            (product.rank is number && product.rank == product.rank.round()));
+    }
+
     match /users/{userId} {
       allow read: if isAuthenticated() && isOwner(userId);
       allow create: if isAuthenticated() 
@@ -58,16 +90,13 @@ service cloud.firestore {
       match /products/{productId} {
         allow read: if isAuthenticated() && isOwner(userId);
         allow create: if isAuthenticated() 
-          && isOwner(userId) 
-          && isWithinQuota(userId)
-          && isSubscriptionActive(userId)
-          && isValidString(request.resource.data.name)
-          && isValidNumber(request.resource.data.price)
-          && isValidNumber(request.resource.data.stock);
+          && isOwner(userId)
+          && isValidProduct(request.resource.data)
+          && isWithinQuota(userId);
         allow update: if isAuthenticated() 
           && isOwner(userId)
-          && isValidNumber(request.resource.data.price)
-          && isValidNumber(request.resource.data.stock);
+          && isValidProduct(request.resource.data)
+          && isWithinRateLimit();
         allow delete: if isAuthenticated() && isOwner(userId);
       }
       

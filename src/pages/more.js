@@ -115,7 +115,7 @@ const More = () => {
   const handleSignOut = () => {
     signOut(auth)
       .then(() => {
-        console.log("User signed out");
+        // console.log("User signed out");
       })
       .catch((error) => {
         console.error("Error signing out: ", error);
@@ -645,7 +645,7 @@ const More = () => {
           </div>
 
           <div className="plan-features">
-            <div className="feature-item">
+            {/* <div className="feature-item">
               <i className="fas fa-box feature-icon"></i>
               <span>
                 {SUBSCRIPTION_TIERS[currentTier].maxProducts} Products
@@ -656,7 +656,7 @@ const More = () => {
               <span>
                 {SUBSCRIPTION_TIERS[currentTier].maxOrders} Orders/month
               </span>
-            </div>
+            </div> */}
             {SUBSCRIPTION_TIERS[currentTier].features.map((feature, index) => (
               <div key={index} className="feature-item">
                 <i className="fas fa-check feature-icon"></i>
@@ -674,10 +674,10 @@ const More = () => {
                   {subscriptionDetails.createdAt?.toLocaleDateString()}
                 </span>
               </div>
-              {getDaysRemaining() > 0 && currentTier === "FREE" && getDaysRemaining() <= 5 && (
+              {currentTier === "FREE" && (
                 <div className="feature-item">
-                  <i className="fas fa-clock feature-icon"></i>
-                  <span>{getDaysRemaining()} days remaining in trial</span>
+                  <i className="fas fa-infinity feature-icon"></i>
+                  <span>Unlimited Free Trial Period</span>
                 </div>
               )}
             </div>

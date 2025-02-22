@@ -1,38 +1,272 @@
-.sync-status-alert {
-  margin-bottom: 20px;
-  padding: 10px 15px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.billing-history-container {
+  max-width: 100%;
+  padding: 16px;
+  margin: 0;
+  background: #f8f9fa;
 }
 
+
+/* Alert Section */
+.alert-section {
+  margin-bottom: 16px;
+}
+
+.alert-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.alert-card.critical {
+  background: linear-gradient(135deg, #fff5f5, #ffe3e3);
+  border-left: none;
+}
+
+.alert-icon {
+  font-size: 18px;
+  color: #dc3545;
+  margin-right: 8px;
+}
+
+/* Stats Cards - Ultra Compact 2x2 Grid */
+.summary-metrics{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+
+.metric-card {
+  background: white;
+  padding: 8px 4px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #eef0f2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.metric-value{
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0;
+  line-height: 1;
+}
+
+.metric-label {
+  color: #6c757d;
+  font-size: 10px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* Orders Table Container */
+.orders-table-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.table-header {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+}
+
+/* Status Badges */
 .badge {
   padding: 6px 10px;
-  border-radius: 4px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.billing-history-container {
-  max-width: 1200px;
-  margin: 0 auto;
+.badge.synced {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
 }
 
-.modal-body table {
-  font-size: 0.9rem;
+.badge.pending {
+  background: linear-gradient(135deg, #ffc107, #ffb300);
+  color: #000;
 }
 
-.btn:disabled {
-  cursor: not-allowed;
+.badge.error {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
 }
 
+/* Date Filter Container */
+.date-filter-container {
+  display: flex;
+  gap: 8px;
+  /* margin-bottom: 16px; */
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.date-filter-container .form-control {
+  font-size: 14px;
+  height: 40px;
+}
+
+/* Download Options */
+.download-options {
+  display: flex;
+  gap: 8px;
+  /* margin-bottom: 16px; */
+}
+
+.download-button {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 20px;
+}
+
+/* Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.pagination-container .pagination {
+  margin: 0;
+}
+
+/* Modal Styles */
+.modal-body {
+  padding: 16px;
+}
+
+.modal-body table {
+  font-size: 13px;
+}
+
+/* Chart Container */
+.chart-container {
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Top Products Section */
+.top-products {
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.product-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.product-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.product-item:last-child {
+  border-bottom: none;
+}
+
+/* Media Queries */
+@media (max-width: 480px) {
+ .billing-history-container {
+    padding: 12px;
+  } 
+  .summary-metrics {
+    gap: 8px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+  }
+
+  .metric-label{
+    font-size: 11px;
+  }
+
+  /* .date-filter-container {
+    flex-direction: column;
+  } */
+
+  .download-options {
+    flex-direction: column;
+  }
+
+  .download-button {
+    width: 100%;
+  }
+}
+
+/* Mobile Optimization */
+@media (max-width: 480px) {
+  .summary-metrics {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .metric-card{
+    min-height: 48px;
+    padding: 6px 4px;
+  }
+
+  .metric-value{
+    font-size: 14px;
+  }
+
+  .metric-label{
+    font-size: 9px;
+  }
+}
+
+/* Remove Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .metric-card{
+    background: white;
+  }
+
+  .metric-value {
+    color: #2c3e50;
+  }
+
+  .metric-label{
+    color: #6c757d;
+  }
 }

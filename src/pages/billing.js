@@ -36,10 +36,12 @@ const BillingErrorBoundary = ({ children }) => {
   }
 
   return (
-    <div onError={(error) => {
-      console.error("Billing Error:", error);
-      setHasError(true);
-    }}>
+    <div
+      onError={(error) => {
+        console.error("Billing Error:", error);
+        setHasError(true);
+      }}
+    >
       {children}
     </div>
   );
@@ -216,23 +218,25 @@ const Billing = () => {
       // First try to store with full data
       localStorage.setItem("currentCart", JSON.stringify(cart));
     } catch (error) {
-      if (error.name === 'QuotaExceededError') {
+      if (error.name === "QuotaExceededError") {
         try {
           // If quota exceeded, try storing without product images
-          const compressedCart = cart.map(item => {
+          const compressedCart = cart.map((item) => {
             const { productImage, ...rest } = item;
             return rest;
           });
           localStorage.setItem("currentCart", JSON.stringify(compressedCart));
-          console.warn('Stored cart without images due to storage limitations');
+          console.warn("Stored cart without images due to storage limitations");
         } catch (innerError) {
           // If still failing, clear some space
           try {
             localStorage.removeItem("productImages"); // Remove cached images
             localStorage.setItem("currentCart", JSON.stringify(cart));
           } catch (finalError) {
-            console.error('Failed to store cart in localStorage:', finalError);
-            toast.warning('Unable to save cart locally due to storage limitations');
+            console.error("Failed to store cart in localStorage:", finalError);
+            toast.warning(
+              "Unable to save cart locally due to storage limitations"
+            );
           }
         }
       }
@@ -279,23 +283,60 @@ const Billing = () => {
     );
   }, []);
 
+  const removeItemCompletely = useCallback((productId) => {
+    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+  }, []);
+
   const updateQuantity = useCallback(
     (productId, newQuantity) => {
-      if (newQuantity < 1) return;
+      // Convert to number and handle invalid/empty input
+      const quantity = parseInt(newQuantity);
+
+      // If input is empty, NaN, or 0, revert to previous quantity
+      if (!quantity || isNaN(quantity) || quantity <= 0) {
+        const currentItem = cart.find((item) => item.id === productId);
+        if (currentItem) {
+          setCart((prevCart) =>
+            prevCart.map((item) =>
+              item.id === productId
+                ? { ...item, quantity: currentItem.quantity }
+                : item
+            )
+          );
+        }
+        notifyError("Quantity must be at least 1");
+        return;
+      }
 
       const product = products.find((p) => p.id === productId);
-      if (newQuantity > product.stockQty) {
+      if (!product) {
+        notifyError("Product not found");
+        return;
+      }
+
+      if (quantity > product.stockQty) {
         notifyError("Cannot add more than available stock");
+        // Revert to previous valid quantity
+        const currentItem = cart.find((item) => item.id === productId);
+        if (currentItem) {
+          setCart((prevCart) =>
+            prevCart.map((item) =>
+              item.id === productId
+                ? { ...item, quantity: currentItem.quantity }
+                : item
+            )
+          );
+        }
         return;
       }
 
       setCart((prevCart) =>
         prevCart.map((item) =>
-          item.id === productId ? { ...item, quantity: newQuantity } : item
+          item.id === productId ? { ...item, quantity: quantity } : item
         )
       );
     },
-    [products]
+    [products, cart]
   );
 
   const calculateTotal = useCallback(() => {
@@ -314,7 +355,7 @@ const Billing = () => {
   );
 
   const reserveStock = async (items) => {
-    if (!navigator.onLine) return true; // Skip reservation in offline mode
+    if (!items?.length) return false;
 
     const batch = writeBatch(db);
     const reservations = [];
@@ -323,7 +364,12 @@ const Billing = () => {
       for (const item of items) {
         const productRef = doc(db, "users", userUID, "products", item.id);
         const productSnap = await getDoc(productRef);
-        const currentStock = productSnap.data().stockQty;
+
+        if (!productSnap.exists()) {
+          throw new Error(`Product ${item.productName} not found`);
+        }
+
+        const currentStock = productSnap.data().stockQty || 0;
 
         if (currentStock < item.quantity) {
           throw new Error(`Insufficient stock for ${item.productName}`);
@@ -331,7 +377,12 @@ const Billing = () => {
 
         batch.update(productRef, {
           stockQty: increment(-item.quantity),
-          reservedQty: increment(item.quantity),
+          lastUpdated: serverTimestamp(),
+          lastStockChange: {
+            type: "SALE",
+            quantity: -item.quantity,
+            timestamp: serverTimestamp(),
+          },
         });
 
         reservations.push({
@@ -435,9 +486,14 @@ const Billing = () => {
 
   const filteredProducts = useMemo(() => {
     return products
-      .filter((product) =>
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      .filter((product) => {
+        // Check if product and productName exist and are valid
+        if (!product || !product.productName) return false;
+
+        // Ensure productName is a string
+        const productName = String(product.productName);
+        return productName.toLowerCase().includes(searchTerm.toLowerCase());
+      })
       .sort((a, b) => {
         // First, sort by stock status (in stock products first)
         if (a.stockQty <= 0 !== b.stockQty <= 0) {
@@ -447,9 +503,12 @@ const Billing = () => {
         // Then apply the selected sort option
         switch (sortOption) {
           case "name":
-            return a.productName.localeCompare(b.productName);
+            // Ensure both product names are strings before comparing
+            const nameA = String(a.productName || "");
+            const nameB = String(b.productName || "");
+            return nameA.localeCompare(nameB);
           case "price":
-            return a.retailPrice - b.retailPrice;
+            return (a.retailPrice || 0) - (b.retailPrice || 0);
           default:
             // If no sort option, still maintain in-stock items at top
             return 0;
@@ -473,7 +532,12 @@ const Billing = () => {
   return (
     <BillingErrorBoundary>
       {loading && <LoaderC />}
-      <ToastContainer />
+      <ToastContainer
+        position="bottom-left"
+        autoClose={3000}
+        limit={3}
+        theme="colored"
+      />
       <div className="billing-container">
         <div className="search-sort-section d-flex p-2">
           <Form.Control
@@ -481,7 +545,7 @@ const Billing = () => {
             placeholder="Search products..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-25"
+            className="w-50"
           />
           <Form.Select
             value={sortOption}
@@ -528,14 +592,15 @@ const Billing = () => {
                 )}
                 <div className="details">
                   <div className="p-2">
+                    <p className="productnameoncard">
+                      <span>{product.productName}</span>
+                    </p>
                     <p>
                       Qty: <span>{product.stockQty}</span>
                     </p>
-                    <p>
-                      <span>{product.productName}</span>
-                    </p>
+
                     <p className="">MRP: ₹{product.mrp}</p>
-                    <p>Price: ₹{product.retailPrice}</p>
+                    {/* <p>Price: ₹{product.retailPrice}</p> */}
                   </div>
                 </div>
               </div>
@@ -546,8 +611,8 @@ const Billing = () => {
               className="floating-cart"
               onClick={() => setShowCartModal(true)}
             >
-              <i className="fas fa-shopping-cart"></i>
-              <div className="cart-total">₹{calculateTotal()}</div>
+              {/* <i className="fas fa-shopping-cart"></i> */}
+              <div className="cart-total">₹ {calculateTotal()}</div>
               <div className="cart-counter">
                 {cart.reduce((sum, item) => sum + item.quantity, 0)}
               </div>
@@ -586,38 +651,90 @@ const Billing = () => {
               </Button>
             </div>
           </div>
+          {/* Cart Modal Table */}
           <Table striped bordered hover className="m-0">
             <thead>
               <tr>
                 <th>Product</th>
                 <th>Quantity</th>
                 <th>Price</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {cart.map((item) => (
                 <tr key={item.id}>
                   <td>{item.productName}</td>
-                  <td>
-                    <Form.Control
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateQuantity(item.id, parseInt(e.target.value))
-                      }
-                    />
+                  <td style={{ width: "200px" }}>
+                    <div className="d-flex align-items-center gap-2">
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        onClick={() => removeFromCart(item.id)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <i className="fa fa-minus" aria-hidden="true"></i>
+                      </Button>
+
+                      <Form.Control
+                        type="number"
+                        min="1"
+                        max={
+                          products.find((p) => p.id === item.id)?.stockQty || 1
+                        }
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value !== "") {
+                            updateQuantity(item.id, parseInt(value));
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (!value || isNaN(value) || value < 1) {
+                            updateQuantity(item.id, 1);
+                          }
+                        }}
+                        style={{ width: "60px", textAlign: "center" }}
+                        required
+                      />
+
+                      <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        onClick={() =>
+                          addToCart(products.find((p) => p.id === item.id))
+                        }
+                        disabled={
+                          item.quantity >=
+                          (products.find((p) => p.id === item.id)?.stockQty ||
+                            0)
+                        }
+                      >
+                        <i className="fa fa-plus" aria-hidden="true"></i>
+                      </Button>
+                    </div>
                   </td>
                   <td>₹{item.retailPrice * item.quantity}</td>
                   <td>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => removeFromCart(item.id)}
-                    >
-                      Remove
-                    </Button>
+                    <div className="d-flex gap-2">
+                      {/* <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={() => removeFromCart(item.id)}
+                        title="Decrease quantity by 1"
+                      >
+                        <i className="fa fa-minus" aria-hidden="true"></i>
+                      </Button> */}
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => removeItemCompletely(item.id)}
+                        title="Remove item from cart"
+                      >
+                        <i className="fa fa-trash" aria-hidden="true"></i>
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

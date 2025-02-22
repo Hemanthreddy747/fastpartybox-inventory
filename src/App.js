@@ -26,7 +26,7 @@ function App() {
       <AuthProvider>
         <Router basename="/">
           <ToastContainer
-            position="top-right"
+            position="bottom-left"
             autoClose={3000}
             limit={3}
             theme="colored"
@@ -65,7 +65,7 @@ function App() {
               }
             />
             <Route
-              path="/more"
+              path="/profile"
               element={
                 <PrivateRoute>
                   <Navbar />

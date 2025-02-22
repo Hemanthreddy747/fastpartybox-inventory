@@ -39,14 +39,14 @@ export const SUBSCRIPTION_TIERS = {
   FREE: {
     maxProducts: 100,
     maxOrders: Number.MAX_SAFE_INTEGER,  // Practically unlimited orders
-    trialPeriodDays: 90,
+    trialPeriodDays: Number.MAX_SAFE_INTEGER, // Unlimited trial
     price: 0,
     features: [
       "Up to 100 products",
       "Unlimited orders per month",
       "Basic inventory management",
       "Simple billing",
-      "90-day free trial",
+      "Unlimited free trial period",  // Updated text
     ],
     limits: {
       batchUploadSize: 50,

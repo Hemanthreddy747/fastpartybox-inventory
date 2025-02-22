@@ -97,7 +97,7 @@ const Login = () => {
         password
       );
       const user = userCredential.user;
-      console.log("User UID:", user.uid);
+      // console.log("User UID:", user.uid);
       notifySuccess("Login successful");
       navigate("/stock"); // Adjust the path as necessary
     } catch (error) {
@@ -113,7 +113,7 @@ const Login = () => {
     try {
       const userCredential = await signInWithPopup(auth, provider);
       const user = userCredential.user;
-      console.log("User UID:", user.uid);
+      // console.log("User UID:", user.uid);
       navigate("/stock");
     } catch (error) {
       notifyError(error.message);
@@ -175,7 +175,7 @@ const Login = () => {
         createdAt: serverTimestamp(),
         subscriptionTier: "FREE",
         subscriptionStatus: "active",
-        subscriptionExpiry: new Date(Date.now() + (90 * 24 * 60 * 60 * 1000)), // 90 days trial
+        subscriptionExpiry: null, // Remove expiry date
         lastBillingDate: null
       });
 
@@ -196,7 +196,12 @@ const Login = () => {
       ) : (
         <div className="login-container">
           <div className="container">
-            <ToastContainer />
+            <ToastContainer 
+              position="bottom-left"
+            autoClose={3000}
+            limit={3}
+            theme="colored"
+            />
 
             <div className="card">
               <div className="logo-container">

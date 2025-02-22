@@ -11,9 +11,16 @@
 }
 
 .product-flex-container .details p span {
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 500;
 }
+.product-card {
+  -webkit-user-select: none;  /* Safari */
+  -ms-user-select: none;      /* IE 10 and IE 11 */
+  user-select: none;          /* Standard syntax */
+}
+
+
+
 
 .product-card {
   flex: 1 1 120px;
@@ -25,12 +32,23 @@
   background-repeat: no-repeat;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
-    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+  /* box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
+    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px; */
   display: flex;
   align-items: flex-start;
   color: white;
   cursor: pointer;
+}
+
+.archived-badge{
+  background-color: #dc3545;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  position: absolute;
+  top: 5px;
+  right: 5px;
 }
 /*
 .details {
@@ -46,7 +64,14 @@
   background-color: rgba(58, 62, 70, 0.68);
   width: 100%;
   display: flex;
-  align-items: flex-end; /* This will align content to bottom */
+  align-items: flex-end;
+}
+.productnameoncard{
+  max-height: 120px;
+  /* border-bottom: 1px solid rgb(175, 175, 175); */
+  padding-bottom: 4px;
+
+
 }
 
 /* New styles for optimized stock update UI */
@@ -125,7 +150,7 @@
 
 .form-section-divider {
   border-top: 1px solid #dee2e6;
-  margin: 20px 0;
+  /* margin: 20px 0; */
   padding-top: 20px;
 }
 

@@ -12,17 +12,25 @@ import * as XLSX from "xlsx";
 import imageCompression from "browser-image-compression";
 import JSZip from "jszip";
 import { toast } from "react-toastify";
+import LoaderC from "../utills/loaderC";
 
 const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
   const [batchUploadProgress, setBatchUploadProgress] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const sanitizeFileName = (fileName) => {
-    return fileName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "_")
-      .replace(/_+/g, "_")
-      .trim();
+    // Return empty string if fileName is null or undefined
+    if (!fileName) return '';
+    
+    // Ensure fileName is converted to string
+    const str = String(fileName);
+    
+    return str
+      .toLowerCase() // Convert to lowercase first
+      .replace(/[^a-z0-9.]/g, '_') // Replace any non-alphanumeric chars (except dots) with underscore
+      .replace(/_+/g, '_') // Replace multiple consecutive underscores with a single one
+      .replace(/^_+|_+$/g, '') // Remove leading and trailing underscores
+      .trim(); // Remove any whitespace
   };
 
   const handleBatchUpload = async (e) => {
@@ -56,44 +64,71 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
 
       // Create a map of product names for image matching
       const productNameMap = products.reduce((acc, product) => {
-        if (product.productName) {
-          const sanitized = sanitizeFileName(product.productName);
-          acc[sanitized] = product.productName;
-          acc[product.productName.toLowerCase()] = product.productName;
+        // Check if product and Product Name exist
+        if (product && product["Product Name"]) {
+          try {
+            const normalizedName = normalizeProductName(product["Product Name"]);
+            const sanitizedName = sanitizeFileName(product["Product Name"]);
+            
+            acc[normalizedName] = product["Product Name"];
+            acc[sanitizedName] = product["Product Name"];
+          } catch (error) {
+            console.warn(`Error processing product name: ${product["Product Name"]}`, error);
+          }
         }
         return acc;
       }, {});
 
+      // Add MIME type validation
+      const isValidImageType = (filename) => {
+        const validTypes = /\.(jpg|jpeg|png|gif)$/i;
+        return validTypes.test(filename);
+      };
+
       // Process all images from ZIP
       for (const [filename, file] of Object.entries(zipContents.files)) {
-        if (!file.dir && file.name.match(/\.(jpg|jpeg|png)$/i)) {
-          const fileNameWithoutExt = filename
-            .split("/")
-            .pop()
-            .replace(/\.[^/.]+$/, "");
+        if (!file.dir && isValidImageType(filename)) {
+          try {
+            // Get filename without path and extension
+            const fileNameWithoutExt = String(filename
+              .split('/')
+              .pop()
+              .replace(/\.[^/.]+$/, ''));
 
-          const sanitizedName = sanitizeFileName(fileNameWithoutExt);
-          const lowerName = fileNameWithoutExt.toLowerCase();
+            // Create normalized versions of the filename with null checks
+            const sanitizedFileName = sanitizeFileName(fileNameWithoutExt);
+            const normalizedFileName = normalizeProductName(fileNameWithoutExt);
 
-          const matchedProductName =
-            productNameMap[sanitizedName] ||
-            productNameMap[lowerName] ||
-            productNameMap[fileNameWithoutExt];
+            // Find matching product with null checks
+            const matchedProduct = products.find(product => {
+              if (!product || !product["Product Name"]) return false;
+              
+              try {
+                const productName = String(product["Product Name"]);
+                const sanitizedProductName = sanitizeFileName(productName);
+                const normalizedProductName = normalizeProductName(productName);
+                
+                return sanitizedFileName === sanitizedProductName || 
+                       normalizedFileName === normalizedProductName;
+              } catch (error) {
+                console.warn(`Error matching product: ${product["Product Name"]}`, error);
+                return false;
+              }
+            });
 
-          if (matchedProductName) {
-            try {
-              // Get array buffer instead of blob
+            if (matchedProduct) {
               const arrayBuffer = await file.async("arraybuffer");
-              // Convert array buffer to blob with proper MIME type
               const blob = new Blob([arrayBuffer], {
-                type: filename.toLowerCase().endsWith("png")
-                  ? "image/png"
-                  : "image/jpeg",
+                type: filename.toLowerCase().endsWith("png") ? "image/png" : "image/jpeg",
               });
-              imageFiles[matchedProductName] = blob;
-            } catch (error) {
-              console.warn(`Failed to process ZIP image ${filename}:`, error);
+              imageFiles[matchedProduct["Product Name"]] = blob;
+            } else {
+              console.warn(`No matching product found for image: ${filename}`);
+              toast.warn(`No matching product found for image: ${filename}`);
             }
+          } catch (error) {
+            console.error(`Error processing image ${filename}:`, error);
+            toast.error(`Error processing image ${filename}`);
           }
         }
       }
@@ -132,7 +167,7 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
       for (let i = 0; i < products.length; i++) {
         const product = products[i];
 
-        if (!product.productName) {
+        if (!product["Product Name"]) {
           toast.warn(`Skipping row ${i + 2}: Missing product name`);
           continue;
         }
@@ -140,7 +175,7 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
         const productId = generateRandomCode(8);
 
         // Process image
-        const imageFile = imageFiles[product.productName];
+        const imageFile = imageFiles[product["Product Name"]];
         let base64Image = null;
 
         if (imageFile) {
@@ -166,28 +201,27 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
             imageCount++;
           } catch (error) {
             console.warn(
-              `Image compression failed for ${product.productName}:`,
+              `Image compression failed for ${product["Product Name"]}:`,
               error
             );
-            toast.warn(`Failed to process image for: ${product.productName}`);
+            toast.warn(`Failed to process image for: ${product["Product Name"]}`);
           }
         }
 
         // Prepare product data
         const newProduct = {
-          productName: product.productName,
-          productDesc: product.productDesc || "",
-          brand: product.brand || "",
-          bulkPrice: parseFloat(product.bulkPrice) || 0,
-          retailPrice: parseFloat(product.retailPrice) || 0,
-          wholesalePrice: parseFloat(product.wholesalePrice) || 0,
-          stockQty: parseInt(product.stockQty) || 0,
-          minStock: parseInt(product.minStock) || 0,
-          offerValue: product.offerValue || "",
-          category: product.category || "",
-          rank: product.rank || "",
-          purchasePrice: parseFloat(product.purchasePrice) || 0,
-          mrp: parseFloat(product.mrp) || 0,
+          productName: product["Product Name"],
+          productDesc: product["Description"] || "",
+          brand: product["Brand Name"] || "",
+          retailPrice: parseFloat(product["Retail Selling Price"]) || 0,
+          wholesalePrice: parseFloat(product["Wholesale Selling Price"]) || 0,
+          stockQty: parseInt(product["Stock Quantity"]) || 0,
+          minStock: parseInt(product["Min Stock Alert at"]) || 0,
+          offerValue: product["Offer Value"] || "",
+          category: product["Category"] || "",
+          rank: product["Rank value for Sorting"] || "",
+          purchasePrice: parseFloat(product["My Bulk Purchase Price"]) || 0,
+          mrp: parseFloat(product["MRP"]) || 0,
           productId,
           archived: false,
           updatedAt: serverTimestamp(),
@@ -244,6 +278,7 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
   };
 
   const handleDownloadProducts = async () => {
+    setLoading(true);
     try {
       // Fetch products
       const productsSnapshot = await getDocs(
@@ -268,19 +303,18 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
       const products = productsSnapshot.docs.map((doc) => {
         const data = doc.data();
         return {
-          productName: data.productName || "",
-          productDesc: data.productDesc || "",
-          brand: data.brand || "",
-          category: data.category || "",
-          bulkPrice: data.bulkPrice || 0,
-          retailPrice: data.retailPrice || 0,
-          wholesalePrice: data.wholesalePrice || 0,
-          stockQty: data.stockQty || 0,
-          minStock: data.minStock || 0,
-          offerValue: data.offerValue || "",
-          rank: data.rank || "",
-          purchasePrice: data.purchasePrice || 0,
-          mrp: data.mrp || 0,
+          "Product Name": data.productName || "",
+          "Description": data.productDesc || "",
+          "Brand Name": data.brand || "",
+          "Category": data.category || "",
+          "My Bulk Purchase Price": data.purchasePrice || 0,
+          "MRP": data.mrp || 0,
+          "Retail Selling Price": data.retailPrice || 0,
+          "Wholesale Selling Price": data.wholesalePrice || 0,
+          "Stock Quantity": data.stockQty || 0,
+          "Min Stock Alert at": data.minStock || 0,
+          "Offer Value": data.offerValue || "",
+          "Rank value for Sorting": data.rank || ""
         };
       });
 
@@ -339,6 +373,8 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
     } catch (error) {
       console.error("Download error:", error);
       toast.error(`Error downloading products: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -363,67 +399,156 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
     ).join("");
   };
 
+  const generateTemplateWorkbook = () => {
+    const headers = [
+      "Product Name",
+      "Description",
+      "Brand Name",
+      "Category",
+      "My Bulk Purchase Price",
+      "MRP",
+      "Retail Selling Price",
+      "Wholesale Selling Price",
+      "Stock Quantity",
+      "Min Stock Alert at",
+      "Offer Value",
+      "Rank value for Sorting"
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Products Template");
+    return workbook;
+  };
+
+  const validateExcelData = (products) => {
+    const errors = [];
+    const duplicateNames = new Set();
+    const requiredFields = [
+      "Product Name",
+      "Retail Selling Price",
+      "Wholesale Selling Price",
+      "Stock Quantity"
+    ];
+
+    products.forEach((product, index) => {
+      const rowNum = index + 2; // Excel rows start at 1, and we have headers
+
+      // Check required fields
+      requiredFields.forEach(field => {
+        if (!product[field]) {
+          errors.push(`Row ${rowNum}: Missing ${field}`);
+        }
+      });
+
+      // Check for duplicate product names
+      if (product["Product Name"]) {
+        const normalizedName = product["Product Name"].toLowerCase().trim();
+        if (duplicateNames.has(normalizedName)) {
+          errors.push(`Row ${rowNum}: Duplicate product name "${product["Product Name"]}"`);
+        }
+        duplicateNames.add(normalizedName);
+      }
+
+      // Validate numeric fields
+      const numericFields = {
+        "Retail Selling Price": 0,
+        "Wholesale Selling Price": 0,
+        "Stock Quantity": 0,
+        "Min Stock Alert at": 0,
+        "MRP": 0,
+        "My Bulk Purchase Price": 0
+      };
+
+      Object.entries(numericFields).forEach(([field, minValue]) => {
+        if (product[field] && (isNaN(parseFloat(product[field])) || parseFloat(product[field]) < minValue)) {
+          errors.push(`Row ${rowNum}: Invalid ${field}`);
+        }
+      });
+
+      // Business logic validations
+      if (parseFloat(product["Wholesale Selling Price"]) > parseFloat(product["MRP"])) {
+        errors.push(`Row ${rowNum}: Wholesale price cannot be greater than MRP`);
+      }
+    });
+
+    return errors;
+  };
+
+  const normalizeProductName = (name) => {
+    // Return empty string if name is null or undefined
+    if (!name) return '';
+    
+    // Ensure name is converted to string before using toLowerCase
+    return String(name).toLowerCase().trim();
+  };
+
   return (
-    <Modal show={show} onHide={handleClose}>
-      <Modal.Header closeButton>
-        <Modal.Title>Batch Upload Products</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={handleBatchUpload}>
-          <Form.Group className="mb-3">
-            <Form.Label>Excel File</Form.Label>
-            <Form.Control
-              type="file"
-              name="excelFile"
-              accept=".xlsx,.xls"
-              required
-            />
-            <Form.Text className="text-muted">
-              Upload Excel file containing product details
-            </Form.Text>
-          </Form.Group>
+    <>
+      {loading && <LoaderC />}
+      <div className="batch-upload-container">
+        <Modal show={show} onHide={handleClose}>
+          <Modal.Header closeButton>
+            <Modal.Title>Batch Upload Products</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={handleBatchUpload}>
+              <Form.Group className="mb-3">
+                <Form.Label>Excel File</Form.Label>
+                <Form.Control
+                  type="file"
+                  name="excelFile"
+                  accept=".xlsx,.xls"
+                  required
+                />
+                <Form.Text className="text-muted">
+                  Upload Excel file containing product details
+                </Form.Text>
+              </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Images ZIP File</Form.Label>
-            <Form.Control type="file" name="zipFile" accept=".zip" required />
-            <Form.Text className="text-muted">
-              Upload ZIP file containing product images named exactly as product
-              names
-            </Form.Text>
-          </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Images ZIP File</Form.Label>
+                <Form.Control type="file" name="zipFile" accept=".zip" required />
+                <Form.Text className="text-muted">
+                  Upload ZIP file containing product images named exactly as product
+                  names
+                </Form.Text>
+              </Form.Group>
 
-          {batchUploadProgress > 0 && (
-            <div className="mb-3">
-              <div className="progress">
-                <div
-                  className="progress-bar"
-                  role="progressbar"
-                  style={{ width: `${batchUploadProgress}%` }}
-                  aria-valuenow={batchUploadProgress}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                >
-                  {batchUploadProgress}%
+              {batchUploadProgress > 0 && (
+                <div className="mb-3">
+                  <div className="progress">
+                    <div
+                      className="progress-bar"
+                      role="progressbar"
+                      style={{ width: `${batchUploadProgress}%` }}
+                      aria-valuenow={batchUploadProgress}
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      {batchUploadProgress}%
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          <div className="d-flex justify-content-between">
-            <Button
-              variant="secondary"
-              onClick={handleDownloadProducts}
-              disabled={loading}
-            >
-              Download Template
-            </Button>
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? "Uploading..." : "Upload"}
-            </Button>
-          </div>
-        </Form>
-      </Modal.Body>
-    </Modal>
+              <div className="d-flex justify-content-between">
+                <Button
+                  variant="secondary"
+                  onClick={handleDownloadProducts}
+                  disabled={loading}
+                >
+                  {loading ? "Downloading..." : "Download Template"}
+                </Button>
+                <Button variant="primary" type="submit" disabled={loading}>
+                  {loading ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+            </Form>
+          </Modal.Body>
+        </Modal>
+      </div>
+    </>
   );
 };
 
