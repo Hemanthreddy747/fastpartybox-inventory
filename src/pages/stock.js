@@ -1056,7 +1056,7 @@ const Stock = () => {
           </Modal.Body>
         </Modal>
         {/* Active Products Grid */}
-        <div className="product-flex-container m-1">
+        <div className="product-flex-container">
           {activeProducts.map((product) => (
             <div
               className={`product-card ${product.stockQty <= 0 ? "out-of-stock" : ""}`}
@@ -1080,7 +1080,7 @@ const Stock = () => {
         </div>
         {/* Archived Products Grid */}
         {archivedProducts.length > 0 && (
-          <div className="product-flex-container m-1">
+          <div className="product-flex-container">
             {archivedProducts.map((product) => (
               <div
                 className="product-card archived"

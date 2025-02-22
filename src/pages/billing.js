@@ -559,7 +559,7 @@ const Billing = () => {
         </div>
 
         <div className="billing-content">
-          <div className="product-flex-container m-1">
+          <div className="product-flex-container">
             {filteredProducts.map((product) => (
               <div
                 className={`product-card ${
