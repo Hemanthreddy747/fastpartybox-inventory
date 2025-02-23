@@ -980,7 +980,7 @@ const Billing = () => {
                     }}
                   >
                     <option value="">
-                      Select existing customer or add new
+                      Select existing customer or add new below
                     </option>
                     {customers.map((customer) => (
                       <option key={customer.id} value={customer.id}>
@@ -988,7 +988,7 @@ const Billing = () => {
                       </option>
                     ))}
                   </Form.Select>
-                  <Button
+                  {/* <Button
                     variant="outline-primary"
                     onClick={() => {
                       setCustomerInfo({
@@ -1001,7 +1001,7 @@ const Billing = () => {
                     }}
                   >
                     <i className="fas fa-plus"></i> New
-                  </Button>
+                  </Button> */}
                 </div>
               </Form.Group>
 
@@ -1011,13 +1011,17 @@ const Billing = () => {
                 <Form.Control
                   type="text"
                   placeholder="Enter customer name"
-                  value={customerInfo.name}
-                  onChange={(e) =>
-                    setCustomerInfo({
-                      ...customerInfo,
-                      name: e.target.value,
-                    })
-                  }
+                  value={customerInfo.name || ''}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    const newValue = e.target.value;
+                    setCustomerInfo(prevInfo => ({
+                      ...prevInfo,
+                      name: newValue,
+                    }));
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  autoComplete="off"
                   required
                 />
               </Form.Group>
@@ -1027,13 +1031,17 @@ const Billing = () => {
                 <Form.Control
                   type="tel"
                   placeholder="Enter phone number"
-                  value={customerInfo.phone}
-                  onChange={(e) =>
-                    setCustomerInfo({
-                      ...customerInfo,
-                      phone: e.target.value,
-                    })
-                  }
+                  value={customerInfo.phone || ''}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    const newValue = e.target.value;
+                    setCustomerInfo(prevInfo => ({
+                      ...prevInfo,
+                      phone: newValue,
+                    }));
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  autoComplete="off"
                   required
                 />
               </Form.Group>

@@ -3,13 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  collection, query, where, getDocs, doc, getDoc,
-  orderBy, limit, writeBatch, serverTimestamp
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  orderBy,
+  limit,
+  writeBatch,
+  serverTimestamp,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import LoaderC from "../utills/loaderC";
 import "./home.css";
-import { Table, Badge } from 'react-bootstrap';
+import { Table, Badge } from "react-bootstrap";
 
 const Home = () => {
   // Core states
@@ -26,18 +34,20 @@ const Home = () => {
     monthSales: 0,
     totalOrders: 0,
     pendingPayments: 0,
-    averageOrderValue: 0
+    averageOrderValue: 0,
   });
-  
-  // Dashboard insights
-  const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [topSellingProducts, setTopSellingProducts] = useState([]);
+
+  // Add this new state
   const [customerMetrics, setCustomerMetrics] = useState({
     totalCustomers: 0,
     activeCustomers: 0,
     totalDue: 0,
-    averageOrderValue: 0
+    averageOrderValue: 0,
   });
+
+  // Dashboard insights
+  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [topSellingProducts, setTopSellingProducts] = useState([]);
 
   // Filters and pagination
   const [dateRange, setDateRange] = useState("today");
@@ -53,7 +63,7 @@ const Home = () => {
         setUserUID(user.uid);
         await loadInitialData(user.uid);
       } else {
-        navigate('/login');
+        navigate("/login");
       }
     });
     return () => unsubscribe();
@@ -66,7 +76,7 @@ const Home = () => {
         loadBusinessInfo(uid),
         loadOrders(uid),
         loadProducts(uid),
-        checkLowStock(uid)
+        checkLowStock(uid),
       ]);
     } catch (error) {
       console.error("Error loading initial data:", error);
@@ -90,18 +100,18 @@ const Home = () => {
   const loadOrders = async (uid) => {
     try {
       const ordersRef = collection(db, "users", uid, "orders");
+      // Already sorting by timestamp desc in the query
       const q = query(ordersRef, orderBy("timestamp", "desc"), limit(100));
       const snapshot = await getDocs(q);
-      
-      const ordersData = snapshot.docs.map(doc => ({
+
+      const ordersData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate?.() || new Date()
+        timestamp: doc.data().timestamp?.toDate?.() || new Date(),
       }));
 
       setOrders(ordersData);
       calculateStats(ordersData);
-      calculateCustomerMetrics(ordersData);
     } catch (error) {
       console.error("Error loading orders:", error);
     }
@@ -112,10 +122,10 @@ const Home = () => {
       const productsRef = collection(db, "users", uid, "products");
       const q = query(productsRef, where("archived", "==", false));
       const snapshot = await getDocs(q);
-      
-      const productsData = snapshot.docs.map(doc => ({
+
+      const productsData = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       }));
 
       setProducts(productsData);
@@ -129,10 +139,10 @@ const Home = () => {
     try {
       const productsRef = collection(db, "users", uid, "products");
       const snapshot = await getDocs(productsRef);
-      
+
       const lowStock = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(product => product.stockQty <= (product.minStock || 5))
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((product) => product.stockQty <= (product.minStock || 5))
         .sort((a, b) => a.stockQty - b.stockQty)
         .slice(0, 5);
 
@@ -154,10 +164,10 @@ const Home = () => {
       monthSales: 0,
       totalOrders: ordersData.length,
       pendingPayments: 0,
-      averageOrderValue: 0
+      averageOrderValue: 0,
     };
 
-    ordersData.forEach(order => {
+    ordersData.forEach((order) => {
       const orderDate = new Date(order.timestamp);
       const orderAmount = parseFloat(order.total) || 0;
 
@@ -175,9 +185,8 @@ const Home = () => {
       }
     });
 
-    newStats.averageOrderValue = ordersData.length > 0 
-      ? newStats.monthSales / ordersData.length 
-      : 0;
+    newStats.averageOrderValue =
+      ordersData.length > 0 ? newStats.monthSales / ordersData.length : 0;
 
     setStats(newStats);
   };
@@ -192,10 +201,10 @@ const Home = () => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    ordersData.forEach(order => {
+    ordersData.forEach((order) => {
       if (order.customerInfo?.id) {
         uniqueCustomers.add(order.customerInfo.id);
-        
+
         // Check if customer is active (ordered in last 30 days)
         if (order.timestamp > thirtyDaysAgo) {
           activeCustomers.add(order.customerInfo.id);
@@ -211,7 +220,9 @@ const Home = () => {
       totalCustomers: uniqueCustomers.size,
       activeCustomers: activeCustomers.size,
       totalDue: totalDue,
-      averageOrderValue: uniqueCustomers.size ? totalOrderValue / uniqueCustomers.size : 0
+      averageOrderValue: uniqueCustomers.size
+        ? totalOrderValue / uniqueCustomers.size
+        : 0,
     });
   };
 
@@ -219,21 +230,21 @@ const Home = () => {
     const productSales = {};
 
     // Initialize sales data for all products
-    productsData.forEach(product => {
+    productsData.forEach((product) => {
       productSales[product.id] = {
         id: product.id,
         name: product.name,
         totalQuantity: 0,
-        totalRevenue: 0
+        totalRevenue: 0,
       };
     });
 
     // Calculate sales from orders
-    ordersData.forEach(order => {
-      order.items?.forEach(item => {
+    ordersData.forEach((order) => {
+      order.items?.forEach((item) => {
         if (productSales[item.id]) {
           productSales[item.id].totalQuantity += item.quantity || 0;
-          productSales[item.id].totalRevenue += (item.price * item.quantity) || 0;
+          productSales[item.id].totalRevenue += item.price * item.quantity || 0;
         }
       });
     });
@@ -291,7 +302,14 @@ const Home = () => {
       {/* Recent Orders */}
       <div className="recent-orders">
         <h3>Recent Orders</h3>
-        <Table responsive striped bordered hover size="sm" className="table-compact">
+        <Table
+          responsive
+          striped
+          bordered
+          hover
+          size="sm"
+          className="table-compact"
+        >
           <thead>
             <tr>
               <th>Date</th>
@@ -303,19 +321,26 @@ const Home = () => {
             </tr>
           </thead>
           <tbody>
-            {orders.slice(0, 5).map(order => (
+            {orders.map((order) => (
               <tr key={order.id}>
                 <td>{new Date(order.timestamp).toLocaleDateString()}</td>
-                <td>{order.customerInfo?.name || 'Retail Customer'}</td>
-                <td>{order.orderType || 'retail'}</td>
+                <td>{order.customerInfo?.name || "Retail Customer"}</td>
+                <td>{order.orderType || "retail"}</td>
                 <td className="text-end">₹{order.total?.toFixed(2)}</td>
-                <td className="text-end">₹{order.balanceDue?.toFixed(2) || '0.00'}</td>
+                <td className="text-end">
+                  ₹{order.balanceDue?.toFixed(2) || "0.00"}
+                </td>
                 <td>
-                  <Badge bg={
-                    order.paymentStatus === 'full' ? 'success' :
-                    order.paymentStatus === 'partial' ? 'warning' : 'danger'
-                  }>
-                    {order.paymentStatus || 'pending'}
+                  <Badge
+                    bg={
+                      order.paymentStatus === "full"
+                        ? "success"
+                        : order.paymentStatus === "partial"
+                        ? "warning"
+                        : "danger"
+                    }
+                  >
+                    {order.paymentStatus || "pending"}
                   </Badge>
                 </td>
               </tr>
