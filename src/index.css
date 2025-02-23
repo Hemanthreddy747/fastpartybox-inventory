@@ -85,7 +85,7 @@
   --box-shadow: 0 4px 6px var(--box-shadow-color);
   --max-width: 1200px;
   --padding-base: 1rem;
-  --margin-base: 1rem;
+  --margin-base: .5rem;
   --line-height: 1.6;
   --z-index-modal: 1000;
   --z-index-dropdown: 100;

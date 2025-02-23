@@ -11,6 +11,7 @@ import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Stock from "./pages/stock";
 import Wholesale from "./pages/wholesale";
+import Customers from "./pages/customers";
 import { ToastContainer } from "react-toastify";
 import { initializeAuthListener } from './services/authService';
 
@@ -70,6 +71,15 @@ function App() {
                 <PrivateRoute>
                   <Navbar />
                   <More />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/customers"
+              element={
+                <PrivateRoute>
+                  <Navbar />
+                  <Customers />
                 </PrivateRoute>
               }
             />

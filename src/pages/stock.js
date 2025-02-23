@@ -899,7 +899,6 @@ const Stock = () => {
                         name="productDesc"
                         value={formData.productDesc || ""}
                         onChange={handleInputChange}
-                        required
                       />
                     </Form.Group>
                   </Col>
@@ -911,7 +910,6 @@ const Stock = () => {
                         name="brand"
                         value={formData.brand || ""}
                         onChange={handleInputChange}
-                        required
                       />
                     </Form.Group>
                   </Col>
@@ -923,14 +921,13 @@ const Stock = () => {
                         name="category"
                         value={formData.category || ""}
                         onChange={handleInputChange}
-                        required
                       />
                     </Form.Group>
                   </Col>
                   <hr className="mb-0 pb-0"></hr>
                   <Col xs={6}>
                     <Form.Group controlId="formPurchasePrice">
-                      <Form.Label>My Bulk Purchase Price</Form.Label>
+                      <Form.Label>My Bulk Purchase Price *</Form.Label>
                       <Form.Control
                         type="number"
                         name="purchasePrice"
@@ -942,7 +939,7 @@ const Stock = () => {
                   </Col>
                   <Col xs={6}>
                     <Form.Group controlId="formMrp">
-                      <Form.Label>MRP</Form.Label>
+                      <Form.Label>MRP *</Form.Label>
                       <Form.Control
                         type="number"
                         name="mrp"
@@ -952,21 +949,9 @@ const Stock = () => {
                       />
                     </Form.Group>
                   </Col>
-                  {/* <Col xs={6}>
-                    <Form.Group controlId="formBulkPrice">
-                      <Form.Label>BulkPrice</Form.Label>
-                      <Form.Control
-                        type="number"
-                        name="bulkPrice"
-                        value={formData.bulkPrice || ""}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-                  </Col> */}
                   <Col xs={6}>
                     <Form.Group controlId="formRetailPrice">
-                      <Form.Label>Retail Selling Price</Form.Label>
+                      <Form.Label>Retail Selling Price *</Form.Label>
                       <Form.Control
                         type="number"
                         name="retailPrice"
@@ -978,7 +963,7 @@ const Stock = () => {
                   </Col>
                   <Col xs={6}>
                     <Form.Group controlId="formWholesalePrice">
-                      <Form.Label>Wholesale Selling Price</Form.Label>
+                      <Form.Label>Wholesale Selling Price *</Form.Label>
                       <Form.Control
                         type="number"
                         name="wholesalePrice"
@@ -997,7 +982,6 @@ const Stock = () => {
                         name="offerValue"
                         value={formData.offerValue || ""}
                         onChange={handleInputChange}
-                        required
                       />
                     </Form.Group>
                   </Col>
@@ -1022,7 +1006,6 @@ const Stock = () => {
                         name="rank"
                         value={formData.rank || ""}
                         onChange={handleInputChange}
-                        required
                       />
                     </Form.Group>
                   </Col>

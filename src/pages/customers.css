@@ -1,0 +1,535 @@
+/* Main container styling */
+.customer-container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--padding-base);
+}
+
+/* Header section */
+/* .header-section {
+  background: var(--white);
+  border-radius: 16px;
+  padding: .5rem;
+  box-shadow: var(--box-shadow);
+} */
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0.5rem;
+}
+
+.header-content .d-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.header-content .btn-primary {
+  min-width: 150px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-content .btn-primary i {
+  font-size: 0.9em;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-buttons button {
+  white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  /* .header-section {
+    padding: .5rem;
+  } */
+  
+  .header-content h2 {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+  
+  .header-buttons button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/* Add Customer Button */
+.btn-primary {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  color: var(--white);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, var(--gradient-end), var(--gradient-start));
+}
+
+/* Search section */
+.search-section {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--box-shadow);
+}
+
+.form-control {
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem var(--input-focus-shadow);
+  outline: none;
+}
+
+/* Table Container */
+.table-container {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow);
+}
+
+/* Table styling */
+.table {
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.table thead th {
+  background-color: var(--gray-50);
+  color: var(--gray-700);
+  font-weight: 600;
+  padding: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  color: var(--gray-800);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--gray-50);
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--gray-100);
+  transition: background-color 0.2s ease;
+}
+
+/* Modal styling */
+.modal-content {
+  border-radius: 16px;
+  border: none;
+  box-shadow: var(--box-shadow);
+}
+
+.modal-header {
+  background-color: var(--gray-50);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 16px 16px 0 0;
+  padding: 1.5rem;
+}
+
+.modal-title {
+  color: var(--gray-900);
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--border-color);
+  padding: 1.5rem;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Form styling */
+.modal-body .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-body .form-label {
+  font-weight: 500;
+}
+
+.modal-body .form-text {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+/* Loading spinner */
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.spinner-border {
+  color: var(--primary-color);
+  width: 3rem;
+  height: 3rem;
+}
+
+.spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-600);
+}
+
+/* Utility classes */
+.text-danger {
+  color: var(--danger) !important;
+}
+
+.text-success {
+  color: var(--success) !important;
+}
+
+.me-2 {
+  margin-right: 0.5rem;
+}
+
+.customer-list {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.customer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.customer-row:hover {
+  background-color: var(--gray-50);
+}
+
+.customer-info {
+  flex-grow: 1;
+  padding: 4px 0;
+}
+
+.customer-name {
+  font-weight: 500;
+  color: var(--bs-dark);
+}
+
+.customer-phone {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin-top: 2px;
+}
+
+.customer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bill-item {
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.bill-item:hover {
+  background-color: #e9ecef;
+}
+
+.bills-summary {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.bill-stat {
+  text-align: center;
+}
+
+.bill-stat small {
+  display: block;
+  font-size: 0.75rem;
+}
+
+.bill-stat div {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+th {
+  cursor: pointer;
+  user-select: none;
+}
+
+th:hover {
+  background-color: #f8f9fa;
+}
+
+.payment-history {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+}
+
+.badge {
+  font-size: 0.9em;
+  padding: 6px 10px;
+}
+
+/* Add these styles to your existing CSS */
+.customer-container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  /* padding: var(--padding-base); */
+}
+
+/* .header-section {
+  background: var(--white);
+  border-radius: 16px;
+  padding: .5rem;
+  box-shadow: var(--box-shadow);
+} */
+
+.header-content {
+  display: flex;
+  /* flex-direction: column; */
+  gap: 15px;
+}
+
+/* Table styles */
+.table {
+  background: var(--white);
+  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  margin-top: 1rem;
+}
+
+.table th {
+  background: var(--light-gray);
+  cursor: pointer;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* Action buttons */
+.btn-group-sm > .btn,
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-radius: 0.2rem;
+}
+
+.btn i {
+  margin-right: 0.25rem;
+}
+
+
+
+/* Add these styles to your existing CSS */
+.modal-lg {
+  max-width: 90%;
+}
+
+.modal-body .table {
+  margin-top: 1rem;
+}
+
+.modal-body .form-control {
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding: 0.75rem;
+}
+
+.modal-body .table td {
+  vertical-align: middle;
+}
+
+.modal-body .btn-sm {
+  padding: 0.25rem 0.5rem;
+}
+
+.modal-body .btn i {
+  margin-right: 0;
+}
+
+@media (max-width: 768px) {
+  .modal-lg {
+    max-width: 95%;
+  }
+
+  .modal-body .d-flex.gap-2 {
+    flex-wrap: nowrap;
+  }
+
+  .modal-body .btn-sm {
+    padding: 0.25rem;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .bills-summary {
+    flex-wrap: wrap;
+    gap: 1rem !important;
+  }
+
+  .bill-stat {
+    flex: 1 1 40%;
+  }
+
+  .table td {
+    white-space: nowrap;
+  }
+}
+
+/* Compact table styles for customers modal */
+.table-compact {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.table-compact th,
+.table-compact td {
+  padding: 0.4rem 0.5rem !important;
+  vertical-align: middle !important;
+}
+
+.table-compact th {
+  background-color: var(--gray-50);
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table-compact td {
+  font-size: 0.8125rem;
+}
+
+.table-compact .action-cell {
+  width: 120px;
+  min-width: 120px;
+}
+
+/* Compact button styles */
+.btn-compact {
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1 !important;
+  font-size: 0.75rem !important;
+}
+
+.btn-compact i {
+  font-size: 0.875rem;
+}
+
+/* Modal styles */
+.modal-lg {
+  max-width: 800px;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-body .form-control {
+  font-size: 0.875rem;
+  padding: 0.4rem 0.75rem;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .table-compact {
+    font-size: 0.75rem;
+  }
+
+  .table-compact td {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem !important;
+  }
+
+  .btn-compact {
+    padding: 0.2rem 0.4rem !important;
+  }
+
+  .btn-compact i {
+    font-size: 0.75rem;
+  }
+
+  .table-compact .action-cell {
+    width: 100px;
+    min-width: 100px;
+  }
+
+  /* Keep all columns visible but optimize space */
+  .table-compact td:not(:last-child) {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Table hover and stripe effects */
+.table-compact tbody tr:hover {
+  background-color: var(--gray-100) !important;
+}
+
+.table-compact.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--gray-50);
+}
+
+/* Improve table responsiveness */
+.table-responsive {
+  margin: 0;
+  padding: 0;
+  border: none;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

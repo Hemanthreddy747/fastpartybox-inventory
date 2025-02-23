@@ -27,11 +27,10 @@ const BillingErrorBoundary = ({ children }) => {
 
   if (hasError) {
     return (
-      <div className="error-container text-center p-5">
-        <h2>Something went wrong</h2>
-        <p>Please try refreshing the page</p>
+      <div className="error-container">
+        <h2>Something went wrong.</h2>
         <Button variant="primary" onClick={() => window.location.reload()}>
-          Refresh Page
+          Reload Page
         </Button>
       </div>
     );
@@ -59,13 +58,12 @@ const generateOrderId = () => {
 
 const Billing = () => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [userUID, setUserUID] = useState(null);
-
+  const [loading, setLoading] = useState(false); // Add this state
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("");
   const [globalLoading, setGlobalLoading] = useState(false);
+  const [userUID, setUserUID] = useState(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showCartModal, setShowCartModal] = useState(false);
   const [processingCheckout, setProcessingCheckout] = useState(false);
@@ -88,9 +86,6 @@ const Billing = () => {
     status: "full", // Can be 'full', 'partial', or 'none'
     amount: 0,
   });
-  const [cartErrors, setCartErrors] = useState({});
-  const [lastSync, setLastSync] = useState(null);
-  const [offlineMode, setOfflineMode] = useState(!navigator.onLine);
 
   // Load pending orders from localStorage on component mount
   useEffect(() => {
@@ -177,20 +172,16 @@ const Billing = () => {
 
     try {
       // Check cache first
-      const cachedData = localStorage.getItem("productsCache");
-      const cacheTimestamp = localStorage.getItem("productsCacheTimestamp");
+      const cachedData = localStorage.getItem('productsCache');
+      const cacheTimestamp = localStorage.getItem('productsCacheTimestamp');
       const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-      if (
-        cachedData &&
-        cacheTimestamp &&
-        Date.now() - parseInt(cacheTimestamp) < CACHE_DURATION
-      ) {
+      if (cachedData && cacheTimestamp && (Date.now() - parseInt(cacheTimestamp) < CACHE_DURATION)) {
         const parsed = JSON.parse(cachedData);
         setProducts(parsed);
         setLoading(false);
         setGlobalLoading(false);
-
+        
         // Fetch in background for updates
         fetchAndUpdateCache(uid);
         return;
@@ -234,8 +225,8 @@ const Billing = () => {
     }));
 
     // Update cache
-    localStorage.setItem("productsCache", JSON.stringify(productsWithImages));
-    localStorage.setItem("productsCacheTimestamp", Date.now().toString());
+    localStorage.setItem('productsCache', JSON.stringify(productsWithImages));
+    localStorage.setItem('productsCacheTimestamp', Date.now().toString());
 
     setProducts(productsWithImages);
   };
@@ -296,16 +287,18 @@ const Billing = () => {
   }, [cart]);
 
   const addToCart = useCallback((product) => {
-    if (!product.stockQty) {
-      toast.error("Product out of stock");
+    // Check if product has zero or negative stock
+    if (product.stockQty <= 0) {
+      notifyError("Product is out of stock");
       return;
     }
 
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
+        // Check if adding one more would exceed available stock
         if (existingItem.quantity >= product.stockQty) {
-          toast.warning("Cannot exceed available stock");
+          notifyError("Cannot add more than available stock");
           return prevCart;
         }
         return prevCart.map((item) =>
@@ -319,17 +312,18 @@ const Billing = () => {
   }, []);
 
   const removeFromCart = useCallback((productId) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === productId);
-      if (existingItem?.quantity > 1) {
-        return prevCart.map((item) =>
-          item.id === productId
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
-        );
-      }
-      return prevCart.filter((item) => item.id !== productId);
-    });
+    setCart((prevCart) =>
+      prevCart
+        .map((item) => {
+          if (item.id === productId) {
+            return item.quantity === 1
+              ? null
+              : { ...item, quantity: item.quantity - 1 };
+          }
+          return item;
+        })
+        .filter(Boolean)
+    );
   }, []);
 
   const removeItemCompletely = useCallback((productId) => {
@@ -460,89 +454,28 @@ const Billing = () => {
       throw new Error("Please enter a valid payment amount");
     }
     if (parsedAmount > total) {
-      throw new Error(`Payment cannot exceed total amount (₹${total.toFixed(2)})`);
+      throw new Error(
+        `Payment cannot exceed total amount (₹${total.toFixed(2)})`
+      );
+    }
+    if (!/^\d+(\.\d{0,2})?$/.test(amount.toString())) {
+      throw new Error("Amount cannot have more than 2 decimal places");
     }
     return parsedAmount;
   };
 
-  const validateOrder = (cart, customerInfo, paymentInfo, total) => {
-    const errors = {};
-
+  const validateWholesaleOrder = (cart, customerInfo, paymentInfo, total) => {
     if (!cart.length) {
-      errors.cart = "Cart is empty";
+      throw new Error("Cart is empty");
     }
-
-    if (isWholesale) {
-      if (!customerInfo?.name?.trim()) {
-        errors.customerName = "Customer name is required";
-      }
-      if (!customerInfo?.phone?.trim()) {
-        errors.customerPhone = "Customer phone is required";
-      }
-      if (customerInfo?.phone && !/^\d{10}$/.test(customerInfo.phone.trim())) {
-        errors.customerPhone = "Invalid phone number format";
-      }
+    if (!customerInfo.name?.trim()) {
+      throw new Error("Customer name is required");
     }
-
+    if (!customerInfo.phone?.trim()) {
+      throw new Error("Customer phone is required");
+    }
     if (paymentInfo.status === "partial") {
-      if (!paymentInfo.amount || paymentInfo.amount <= 0) {
-        errors.payment = "Invalid payment amount";
-      }
-      if (paymentInfo.amount > total) {
-        errors.payment = "Payment cannot exceed total amount";
-      }
-    }
-
-    return errors;
-  };
-
-  const determinePaymentStatus = (balanceDue, total) => {
-    if (balanceDue <= 0) return "paid";
-    if (balanceDue === total) return "unpaid";
-    return "partial";
-  };
-
-  const formatCustomerInfo = (customerInfo) => {
-    return {
-      id: customerInfo.id || null,
-      name: customerInfo.name?.trim(),
-      phone: customerInfo.phone?.trim(),
-      email: customerInfo.email?.trim() || null,
-      gst: customerInfo.gst?.trim() || null,
-      address: customerInfo.address?.trim() || null,
-    };
-  };
-
-  const handleCheckoutSuccess = () => {
-    toast.success("Order completed successfully");
-    setCart([]);
-    setShowCheckoutModal(false);
-    setCustomerInfo({
-      name: "",
-      phone: "",
-      email: "",
-      gst: "",
-      address: "",
-    });
-    setPaymentInfo({
-      status: "full",
-      amount: 0,
-      method: "cash",
-    });
-  };
-
-  const handleCheckoutError = (error) => {
-    console.error("Checkout error:", error);
-    toast.error(error.message || "Failed to process order");
-    
-    // If there are validation errors, show them
-    if (error.validationErrors) {
-      setCartErrors(error.validationErrors);
-    }
-    
-    // If there's a stock error, refresh product data
-    if (error.message.includes("stock")) {
-      fetchProducts(userUID); // Using the existing fetchProducts function
+      validatePayment(paymentInfo.amount, total); // Changed from validatePaymentAmount to validatePayment
     }
   };
 
@@ -556,11 +489,11 @@ const Billing = () => {
       for (const item of cart) {
         const productRef = doc(db, "users", userId, "products", item.id);
         const productSnap = await getDoc(productRef);
-
+        
         if (!productSnap.exists()) {
           throw new Error(`Product ${item.productName} no longer exists`);
         }
-
+        
         const currentStock = productSnap.data().stockQty;
         stockLevels[item.id] = currentStock;
         productRefs[item.id] = productRef;
@@ -575,12 +508,12 @@ const Billing = () => {
       return {
         valid: true,
         stockLevels,
-        productRefs,
+        productRefs
       };
     } catch (error) {
       return {
         valid: false,
-        error: error.message,
+        error: error.message
       };
     }
   };
@@ -589,25 +522,26 @@ const Billing = () => {
     if (processingCheckout) return;
 
     setProcessingCheckout(true);
-    setCartErrors({});
-
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      if (!user) throw new Error("User not authenticated");
+      if (!user) return;
 
       const totalAmount = calculateTotal();
-      const errors = validateOrder(
-        cart,
-        customerInfo,
-        paymentInfo,
-        totalAmount
-      );
 
-      if (Object.keys(errors).length > 0) {
-        setCartErrors(errors);
-        throw new Error("Please correct the errors before proceeding");
+      // Validate order details
+      if (isWholesale) {
+        validateWholesaleOrder(cart, customerInfo, paymentInfo, totalAmount);
       }
+
+      // Calculate payment amounts
+      const amountPaid =
+        paymentInfo.status === "full"
+          ? totalAmount
+          : paymentInfo.status === "none"
+          ? 0
+          : parseFloat(paymentInfo.amount);
+      const balanceDue = parseFloat((totalAmount - amountPaid).toFixed(2));
 
       // Stock validation
       const stockValidationResults = await validateStockLevels(cart, user.uid);
@@ -615,123 +549,104 @@ const Billing = () => {
         throw new Error(stockValidationResults.error);
       }
 
-      // Calculate payment details
-      const amountPaid = calculateAmountPaid(paymentInfo, totalAmount);
-      const balanceDue = parseFloat((totalAmount - amountPaid).toFixed(2));
-
       // Prepare order data
-      const orderData = prepareOrderData({
-        cart,
-        totalAmount,
+      const orderData = {
+        orderType: isWholesale ? "wholesale" : "retail",
+        items: cart.map((item) => ({
+          ...item,
+          originalStock: stockValidationResults.stockLevels[item.id],
+        })),
+        total: totalAmount,
         amountPaid,
         balanceDue,
-        customerInfo,
-        stockValidationResults,
-        user,
+        paymentStatus:
+          balanceDue <= 0
+            ? "full"
+            : balanceDue === totalAmount
+            ? "none"
+            : "partial",
+        customerInfo: isWholesale
+          ? {
+              id: customerInfo.id || null,
+              name: customerInfo.name.trim(),
+              phone: customerInfo.phone.trim(),
+              gst: customerInfo.gst?.trim() || null,
+              email: customerInfo.email?.trim() || null,
+            }
+          : null,
+        timestamp: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+        localId: generateOrderId(),
+        paymentHistory: [
+          {
+            amount: amountPaid,
+            date: new Date().toISOString(),
+            type: "initial",
+            recordedBy: auth.currentUser.email,
+            balance: balanceDue,
+          },
+        ],
+      };
+
+      // Create batch write
+      const batch = writeBatch(db);
+
+      // Add order
+      const orderRef = doc(collection(db, "users", user.uid, "orders"));
+      batch.set(orderRef, orderData);
+
+      // Update stock levels
+      for (const item of cart) {
+        const productRef = doc(db, "users", user.uid, "products", item.id);
+        batch.update(productRef, {
+          stockQty: increment(-item.quantity),
+        });
+      }
+
+      // Update customer data for wholesale
+      if (isWholesale && customerInfo.id) {
+        const customerRef = doc(
+          db,
+          "users",
+          user.uid,
+          "customers",
+          customerInfo.id
+        );
+        batch.update(customerRef, {
+          totalPurchases: increment(1),
+          totalAmount: increment(totalAmount),
+          totalDue: increment(balanceDue),
+          lastOrderDate: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+
+      // Clear cart and reset state
+      setCart([]);
+      setCustomerInfo({
+        id: "",
+        name: "",
+        phone: "",
+        gst: "",
+        email: "",
+        amountPaid: 0,
+        paymentStatus: "pending",
       });
+      setPaymentInfo({ status: "full", amount: 0 });
+      setShowCheckoutModal(false);
+      setIsWholesale(false);
 
-      // Process order
-      await processOrder(orderData, user.uid);
+      toast.success("Order completed successfully!");
 
-      // Success handling
-      handleCheckoutSuccess();
+      // Return order ID for receipt printing
+      return orderRef.id;
     } catch (error) {
-      handleCheckoutError(error);
+      console.error("Checkout Error:", error);
+      toast.error(error.message || "Failed to process order");
     } finally {
       setProcessingCheckout(false);
-    }
-  };
-
-  // Helper functions
-  const calculateAmountPaid = (paymentInfo, total) => {
-    return paymentInfo.status === "full"
-      ? total
-      : paymentInfo.status === "none"
-      ? 0
-      : parseFloat(paymentInfo.amount);
-  };
-
-  const prepareOrderData = ({
-    cart,
-    totalAmount,
-    amountPaid,
-    balanceDue,
-    customerInfo,
-    stockValidationResults,
-    user,
-  }) => {
-    return {
-      orderType: isWholesale ? "wholesale" : "retail",
-      items: cart.map((item) => ({
-        ...item,
-        originalStock: stockValidationResults.stockLevels[item.id],
-      })),
-      total: totalAmount,
-      amountPaid,
-      balanceDue,
-      paymentStatus: determinePaymentStatus(balanceDue, totalAmount),
-      customerInfo: isWholesale ? formatCustomerInfo(customerInfo) : null,
-      timestamp: serverTimestamp(),
-      lastUpdated: serverTimestamp(),
-      localId: generateOrderId(),
-      paymentHistory: [
-        {
-          amount: amountPaid,
-          date: new Date().toISOString(),
-          type: "initial",
-          recordedBy: user.email,
-          balance: balanceDue,
-        },
-      ],
-      createdBy: user.email,
-      createdAt: serverTimestamp(),
-    };
-  };
-
-  const processOrder = async (orderData, userId) => {
-    const batch = writeBatch(db);
-
-    // Create order document
-    const orderRef = doc(collection(db, "users", userId, "orders"));
-    batch.set(orderRef, orderData);
-
-    // Update product quantities
-    orderData.items.forEach((item) => {
-      const productRef = doc(db, "users", userId, "products", item.id);
-      batch.update(productRef, {
-        stockQty: increment(-item.quantity),
-        lastSold: serverTimestamp(),
-        totalSold: increment(item.quantity),
-      });
-    });
-
-    // Update customer if wholesale
-    if (isWholesale && orderData.customerInfo?.id) {
-      const customerRef = doc(
-        db,
-        "users",
-        userId,
-        "customers",
-        orderData.customerInfo.id
-      );
-      batch.update(customerRef, {
-        totalPurchases: increment(1),
-        totalSpent: increment(orderData.total),
-        totalDue: increment(orderData.balanceDue),
-        lastPurchase: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    }
-
-    await batch.commit();
-
-    // Handle offline storage
-    if (!navigator.onLine) {
-      const offlineOrders = JSON.parse(
-        localStorage.getItem("offlineOrders") || "[]"
-      );
-      offlineOrders.push({ ...orderData, orderId: orderRef.id });
-      localStorage.setItem("offlineOrders", JSON.stringify(offlineOrders));
     }
   };
 
@@ -754,23 +669,23 @@ const Billing = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm && sortOption === "") {
+    if (!searchTerm && sortOption === '') {
       return products.sort((a, b) => (a.stockQty <= 0) - (b.stockQty <= 0));
     }
 
     const searchLower = searchTerm.toLowerCase();
     return products
-      .filter((product) =>
+      .filter((product) => 
         product?.productName?.toLowerCase().includes(searchLower)
       )
       .sort((a, b) => {
         if (a.stockQty <= 0 !== b.stockQty <= 0) {
           return a.stockQty <= 0 ? 1 : -1;
         }
-        if (sortOption === "name") {
-          return (a.productName || "").localeCompare(b.productName || "");
+        if (sortOption === 'name') {
+          return (a.productName || '').localeCompare(b.productName || '');
         }
-        if (sortOption === "price") {
+        if (sortOption === 'price') {
           return (a.retailPrice || 0) - (b.retailPrice || 0);
         }
         return 0;
@@ -817,10 +732,9 @@ const Billing = () => {
   // Cart Modal Component
   const CartModal = () => {
     return (
-      <Modal
-        show={showCartModal}
-        onHide={() => !processingCart && setShowCartModal(false)}
-        size="lg"
+      <Modal 
+        show={showCartModal} 
+        onHide={processingCart ? null : () => setShowCartModal(false)}
       >
         {processingCart && <LoaderC />}
         <Modal.Header closeButton={!processingCart}>
@@ -828,22 +742,17 @@ const Billing = () => {
         </Modal.Header>
         <Modal.Body>
           <div className="d-flex justify-content-between align-items-center mt-2 mb-3">
-            <h4>Total: ₹{calculateTotal().toFixed(2)}</h4>
+            <h4>Total: ₹{calculateTotal()}</h4>
             <div className="cart-actions">
               <Button
                 variant="danger"
                 onClick={() => {
-                  if (
-                    window.confirm("Are you sure you want to clear the cart?")
-                  ) {
-                    setCart([]);
-                    setShowCartModal(false);
-                  }
+                  setCart([]);
+                  setShowCartModal(false);
                 }}
-                className="cancel-all-button me-2"
-                disabled={processingCart}
+                className="cancel-all-button"
               >
-                Clear Cart
+                Cancel Bill
               </Button>
               <Button
                 variant="primary"
@@ -851,20 +760,18 @@ const Billing = () => {
                   setShowCartModal(false);
                   setShowCheckoutModal(true);
                 }}
-                disabled={cart.length === 0 || processingCart}
               >
                 Proceed to Checkout
               </Button>
             </div>
           </div>
-
-          <Table striped bordered hover>
+          {/* Cart Modal Table */}
+          <Table striped bordered hover className="m-0 align-middle">
             <thead>
               <tr>
                 <th>Product</th>
                 <th>Quantity</th>
                 <th>Price</th>
-                <th>Total</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -872,55 +779,70 @@ const Billing = () => {
               {cart.map((item) => (
                 <tr key={item.id}>
                   <td>{item.productName}</td>
-                  <td>
-                    <div className="d-flex align-items-center">
+                  <td style={{ width: "200px" }}>
+                    <div className="d-flex align-items-center gap-2">
                       <Button
                         variant="outline-secondary"
                         size="sm"
                         onClick={() => removeFromCart(item.id)}
-                        disabled={processingCart}
+                        disabled={item.quantity <= 1}
                       >
-                        -
+                        <i className="fa fa-minus" aria-hidden="true"></i>
                       </Button>
-                      <span className="mx-2">{item.quantity}</span>
+
+                      <Form.Control
+                        type="number"
+                        min="1"
+                        max={
+                          products.find((p) => p.id === item.id)?.stockQty || 1
+                        }
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value !== "") {
+                            updateQuantity(item.id, parseInt(value));
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const value = parseInt(e.target.value);
+                          if (!value || isNaN(value) || value < 1) {
+                            updateQuantity(item.id, 1);
+                          }
+                        }}
+                        style={{ width: "60px", textAlign: "center" }}
+                        required
+                      />
+
                       <Button
                         variant="outline-secondary"
                         size="sm"
-                        onClick={() => addToCart(item)}
+                        onClick={() =>
+                          addToCart(products.find((p) => p.id === item.id))
+                        }
                         disabled={
-                          processingCart || item.quantity >= item.stockQty
+                          item.quantity >=
+                          (products.find((p) => p.id === item.id)?.stockQty ||
+                            0)
                         }
                       >
-                        +
+                        <i className="fa fa-plus" aria-hidden="true"></i>
                       </Button>
                     </div>
                   </td>
                   <td>
                     ₹
-                    {(isWholesale
-                      ? item.wholesalePrice
-                      : item.retailPrice
-                    ).toFixed(2)}
-                  </td>
-                  <td>
-                    ₹
-                    {(
-                      item.quantity *
-                      (isWholesale ? item.wholesalePrice : item.retailPrice)
-                    ).toFixed(2)}
+                    {isWholesale
+                      ? item.wholesalePrice * item.quantity
+                      : item.retailPrice * item.quantity}
                   </td>
                   <td>
                     <Button
-                      variant="danger"
+                      variant="outline-danger"
                       size="sm"
-                      onClick={() => {
-                        setCart(
-                          cart.filter((cartItem) => cartItem.id !== item.id)
-                        );
-                      }}
-                      disabled={processingCart}
+                      onClick={() => removeItemCompletely(item.id)}
+                      title="Remove item from cart"
                     >
-                      Remove
+                      <i className="fa fa-trash" aria-hidden="true"></i>
                     </Button>
                   </td>
                 </tr>
@@ -928,6 +850,17 @@ const Billing = () => {
             </tbody>
           </Table>
         </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowCartModal(false);
+              setProcessingCheckout(false);
+            }}
+          >
+            Close
+          </Button>
+        </Modal.Footer>
       </Modal>
     );
   };
@@ -1169,9 +1102,9 @@ const Billing = () => {
   };
 
   return (
-    <BillingErrorBoundary>
+    <>
       {globalLoading && <LoaderC />}
-
+      
       <div className="billing-container">
         <div className="search-sort-section d-flex p-2 align-items-center">
           <Form.Control
@@ -1291,7 +1224,33 @@ const Billing = () => {
           <span className="text-success">✓ Synced</span>
         )}
       </div>
-    </BillingErrorBoundary>
+    </>
+  );
+};
+
+export default Billing;
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
+    </>
   );
 };
 

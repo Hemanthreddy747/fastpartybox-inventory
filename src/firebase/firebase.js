@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserSessionPersistence } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
@@ -17,36 +17,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+
+// Initialize Firestore with persistence settings
+const db = initializeFirestore(app, {
+  cache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
+
 const storage = getStorage(app);
 const analytics = getAnalytics(app);
 
 // Set authentication persistence to session
 setPersistence(auth, browserSessionPersistence);
-
-// Enable offline persistence with security settings
-enableIndexedDbPersistence(db, {
-  synchronizeTabs: true,
-  experimentalForceOwningTab: true
-}).catch((err) => {
-  console.error("Offline persistence error:", err);
-});
-
-// For secure storage operations, use the following pattern in your upload/download functions:
-// Example usage in your components/services:
-/*
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
-const uploadFile = async (file, path) => {
-  const storageRef = ref(storage, path);
-  const metadata = {
-    customMetadata: {
-      'auth-token': await auth.currentUser?.getIdToken()
-    }
-  };
-  await uploadBytes(storageRef, file, metadata);
-  return getDownloadURL(storageRef);
-};
-*/
 
 export { auth, db, storage, analytics };

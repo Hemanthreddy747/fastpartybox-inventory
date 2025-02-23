@@ -30,12 +30,12 @@ const Navbar = () => {
       >
         billing
       </div>
-      {/* <div
-        className={activeTab === "Wholesale" ? "active" : ""}
-        onClick={() => handleTabClick("Wholesale")}
+      <div
+        className={activeTab === "customers" ? "active" : ""}
+        onClick={() => handleTabClick("customers")}
       >
-        wholesale
-      </div> */}
+        customers
+      </div>
       <div
         className={activeTab === "stock" ? "active" : ""}
         onClick={() => handleTabClick("stock")}
