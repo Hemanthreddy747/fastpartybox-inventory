@@ -106,7 +106,7 @@
 
 /* Add padding to body to prevent content from hiding behind fixed navbar */
 body {
-  padding-top: 70px; /* Adjust this value based on your navbar height */
+  padding-top: 50px; /* Adjust this value based on your navbar height */
 }
 
 @media (max-width: 768px) {
@@ -118,9 +118,5 @@ body {
   .navbarr div {
     padding: 0.6rem 1rem;
     font-size: 0.8rem;
-  }
-
-  body {
-    padding-top: 55px; /* Adjust for smaller navbar on mobile */
   }
 }

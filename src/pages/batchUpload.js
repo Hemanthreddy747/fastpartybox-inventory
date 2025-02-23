@@ -492,8 +492,8 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
             <Modal.Title>Batch Upload Products</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <Form onSubmit={handleBatchUpload}>
-              <Form.Group className="mb-3">
+            <Form onSubmit={handleBatchUpload} className="mt-3">
+              <Form.Group className="mb-4">
                 <Form.Label>Excel File</Form.Label>
                 <Form.Control
                   type="file"
@@ -508,10 +508,15 @@ const BatchUpload = ({ userUID, show, handleClose, fetchProducts }) => {
 
               <Form.Group className="mb-3">
                 <Form.Label>Images ZIP File</Form.Label>
-                <Form.Control type="file" name="zipFile" accept=".zip" required />
+                <Form.Control
+                  type="file"
+                  name="zipFile"
+                  accept=".zip"
+                  required
+                />
                 <Form.Text className="text-muted">
-                  Upload ZIP file containing product images named exactly as product
-                  names
+                  Upload ZIP file containing product images named exactly as
+                  product names
                 </Form.Text>
               </Form.Group>
 

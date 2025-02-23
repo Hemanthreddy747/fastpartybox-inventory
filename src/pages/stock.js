@@ -53,6 +53,7 @@ const Stock = () => {
     rank: "",
     archived: false,
     productImage: null,
+    productImagePreview: null,  // Add this line
   });
 
   // Add this to determine if we're in edit mode
@@ -464,6 +465,7 @@ const Stock = () => {
       stockQty: "",
       archived: false,
       productImage: null,
+      productImagePreview: null,
     });
     setShowAddModal(false);
     setShowEditModal(false);
@@ -695,10 +697,13 @@ const Stock = () => {
           </Button>
         </div>
         {/* Add Product Modal */}
-        <Modal show={showAddModal} onHide={() => {
-          setShowAddModal(false);
-          resetForm();
-        }}>
+        <Modal
+          show={showAddModal}
+          onHide={() => {
+            setShowAddModal(false);
+            resetForm();
+          }}
+        >
           <Modal.Header closeButton>
             <Modal.Title>Add New Product</Modal.Title>
           </Modal.Header>
@@ -726,20 +731,41 @@ const Stock = () => {
                 ))}
 
                 {/* Product Image Field */}
-                <Col xs={12} className="mt-3">
+                <Col xs={8} className="mt-3">
                   <Form.Group controlId="formProductImage">
                     <Form.Label>Product Image</Form.Label>
                     <Form.Control
                       type="file"
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          productImage: e.target.files[0],
-                        })
-                      }
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({
+                              ...formData,
+                              productImage: file,
+                              productImagePreview: reader.result
+                            });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
                       accept="image/*"
                       required={true}
                     />
+                  </Form.Group>
+                </Col>
+                <Col xs={4} className="mt-3">
+                  <Form.Group controlId="formProductImagePreview">
+                    {formData.productImagePreview && (
+                      <div className="mt-4 justify-content-center d-flex">
+                        <img
+                          src={formData.productImagePreview}
+                          alt="Product preview"
+                          style={{ maxWidth: "50px", height: "auto" }}
+                        />
+                      </div>
+                    )}
                   </Form.Group>
                 </Col>
               </Row>
@@ -777,7 +803,7 @@ const Stock = () => {
           <Modal.Body>
             <Form onSubmit={handleEditProduct}>
               {/* Stock Update Section */}
-              <div className="stock-update-section">
+              <div className="stock-update-section mt-2">
                 <Row>
                   <Col xs={12}>
                     <Form.Group controlId="formStockQty">
@@ -1001,56 +1027,67 @@ const Stock = () => {
                     </Form.Group>
                   </Col>
 
-                  <Col xs={9}>
+                  <Col xs={8}>
                     <Form.Group controlId="formProductImage">
                       <Form.Label>Product Image</Form.Label>
-
                       <Form.Control
                         type="file"
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            productImage: e.target.files[0],
-                          })
-                        }
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setFormData({
+                                ...formData,
+                                productImage: file,
+                                productImagePreview: reader.result
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        accept="image/*"
                       />
                     </Form.Group>
                   </Col>
-                  <Col xs={3}>
-                    <Form.Group controlId="formProductImage">
-                      {formData.productImage &&
-                        typeof formData.productImage === "string" && (
-                          <div className="mt-2">
-                            <img
-                              src={formData.productImage}
-                              alt="Current product"
-                              style={{ maxWidth: "50px", height: "auto" }}
-                            />
-                          </div>
-                        )}
+                  <Col xs={4} className="">
+                    <Form.Group controlId="formProductImagePreview">
+                      {(formData.productImagePreview || (formData.productImage && typeof formData.productImage === "string")) && (
+                        <div className="mt-2 justify-content-center d-flex">
+                          <img
+                            src={formData.productImagePreview || formData.productImage}
+                            alt="Product preview"
+                            style={{ maxWidth: "50px", height: "auto" }}
+                          />
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                 </Row>
 
-                <Button variant="primary" type="submit" className="mt-3">
-                  Update All Details
-                </Button>
-                <Button
-                  variant="warning"
-                  type="button"
-                  onClick={handleArchiveProduct}
-                  className="ms-4 me-4 mt-3"
-                >
-                  {formData.archived ? "Unarchive" : "Archive"}
-                </Button>
-                <Button
-                  variant="danger"
-                  type="button"
-                  onClick={handlePermanentDelete}
-                  className="me-2 mt-3"
-                >
-                  Delete
-                </Button>
+                <div className="d-flex justify-content-between align-items-center mt-3">
+                  <div>
+                    <Button
+                      variant="danger"
+                      type="button"
+                      onClick={handlePermanentDelete}
+                      className="me-2"
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="warning"
+                      type="button"
+                      onClick={handleArchiveProduct}
+                    >
+                      {formData.archived ? "Unarchive" : "Archive"}
+                    </Button>
+                  </div>
+
+                  <Button variant="primary" type="submit">
+                    Update All Details
+                  </Button>
+                </div>
               </div>
             </Form>
           </Modal.Body>
@@ -1059,7 +1096,9 @@ const Stock = () => {
         <div className="product-flex-container">
           {activeProducts.map((product) => (
             <div
-              className={`product-card ${product.stockQty <= 0 ? "out-of-stock" : ""}`}
+              className={`product-card ${
+                product.stockQty <= 0 ? "out-of-stock" : ""
+              }`}
               key={product.id}
               style={{ backgroundImage: `url(${product.productImage})` }}
               onClick={() => openEditModal(product)}
@@ -1069,8 +1108,12 @@ const Stock = () => {
               )}
               <div className="details">
                 <div className="p-2">
-                  <p><span>{product.productName}</span></p>
-                  <p>Qty: <span>{product.stockQty}</span></p>
+                  <p>
+                    <span>{product.productName}</span>
+                  </p>
+                  <p>
+                    Qty: <span>{product.stockQty}</span>
+                  </p>
                   <p className="">MRP: {product.mrp}</p>
                   <p>Bulk Price: {product.wholesalePrice}</p>
                 </div>
@@ -1091,8 +1134,12 @@ const Stock = () => {
                 <div className="archived-badge">Archived</div>
                 <div className="details">
                   <div className="p-2">
-                    <p><span>{product.productName}</span></p>
-                    <p>Qty: <span>{product.stockQty}</span></p>
+                    <p>
+                      <span>{product.productName}</span>
+                    </p>
+                    <p>
+                      Qty: <span>{product.stockQty}</span>
+                    </p>
                     <p className="">MRP: {product.mrp}</p>
                     <p>Bulk Price: {product.wholesalePrice}</p>
                   </div>

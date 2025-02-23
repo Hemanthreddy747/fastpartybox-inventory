@@ -466,16 +466,18 @@ const More = () => {
         <Modal.Title>Edit Profile</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <Form>
+        <Form className="mt-3">
           <Form.Group className="mb-3">
             <Form.Label>Business Name</Form.Label>
             <Form.Control
               type="text"
               value={profileData.businessName}
-              onChange={(e) => setProfileData({
-                ...profileData,
-                businessName: e.target.value
-              })}
+              onChange={(e) =>
+                setProfileData({
+                  ...profileData,
+                  businessName: e.target.value,
+                })
+              }
               placeholder="Enter business name"
             />
           </Form.Group>
@@ -498,10 +500,12 @@ const More = () => {
             <Form.Control
               type="tel"
               value={profileData.phoneNumber}
-              onChange={(e) => setProfileData({
-                ...profileData,
-                phoneNumber: e.target.value
-              })}
+              onChange={(e) =>
+                setProfileData({
+                  ...profileData,
+                  phoneNumber: e.target.value,
+                })
+              }
               placeholder="Enter phone number"
             />
           </Form.Group>
@@ -512,10 +516,12 @@ const More = () => {
               as="textarea"
               rows={2}
               value={profileData.address}
-              onChange={(e) => setProfileData({
-                ...profileData,
-                address: e.target.value
-              })}
+              onChange={(e) =>
+                setProfileData({
+                  ...profileData,
+                  address: e.target.value,
+                })
+              }
               placeholder="Enter address"
             />
           </Form.Group>
@@ -533,16 +539,18 @@ const More = () => {
             ) : (
               <Form onSubmit={handlePasswordChange}>
                 <h6 className="mb-3">Change Password</h6>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>Current Password</Form.Label>
                   <Form.Control
                     type="password"
                     value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData({
-                      ...passwordData,
-                      currentPassword: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setPasswordData({
+                        ...passwordData,
+                        currentPassword: e.target.value,
+                      })
+                    }
                     required
                     placeholder="Enter current password"
                   />
@@ -553,10 +561,12 @@ const More = () => {
                   <Form.Control
                     type="password"
                     value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({
-                      ...passwordData,
-                      newPassword: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setPasswordData({
+                        ...passwordData,
+                        newPassword: e.target.value,
+                      })
+                    }
                     required
                     placeholder="Enter new password"
                   />
@@ -567,10 +577,12 @@ const More = () => {
                   <Form.Control
                     type="password"
                     value={passwordData.confirmNewPassword}
-                    onChange={(e) => setPasswordData({
-                      ...passwordData,
-                      confirmNewPassword: e.target.value
-                    })}
+                    onChange={(e) =>
+                      setPasswordData({
+                        ...passwordData,
+                        confirmNewPassword: e.target.value,
+                      })
+                    }
                     required
                     placeholder="Confirm new password"
                   />
@@ -583,9 +595,9 @@ const More = () => {
                     onClick={() => {
                       setShowPasswordChange(false);
                       setPasswordData({
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmNewPassword: ''
+                        currentPassword: "",
+                        newPassword: "",
+                        confirmNewPassword: "",
                       });
                     }}
                   >
